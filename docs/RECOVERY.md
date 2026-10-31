@@ -40,3 +40,19 @@ An orderly reboot can help. The Homebrew Channel failsafe may enable Telnet afte
 a failed boot; use it only for local recovery, then close it again. Re-rooting may
 be needed if persistence was lost. Do not factory-reset as a first troubleshooting
 step, flash firmware partitions, or install LG Developer Mode on the rooted TV.
+
+
+## Restore video-app preloading
+
+`home-restore` restores video preloading before stopping the router. You can also
+turn off **More free RAM** in Own TV Settings → About before uninstalling the helper. This restores the original policies kept in
+`/var/lib/own-tv/performance.json`. Recovery over SSH is also possible:
+
+```sh
+node /var/lib/own-tv/helper.cjs memoryMode ZmFsc2U=
+```
+
+`ZmFsc2U=` is the fixed base64 encoding of JSON `false`, not a credential.
+Do not delete the saved original policies until they have been restored. The
+memory mode is currently enabled only for the tested OLED65C51LA. It uses the
+Home router to reapply after wake/startup; other models remain unverified.

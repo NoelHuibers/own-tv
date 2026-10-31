@@ -18,6 +18,8 @@ Weather and calendar make external connections only after explicit setup.
 - The TV's native helper and integration secrets are in `/var/lib/own-tv`.
   Calendar sharing URLs stay in a mode-0600 file, never in the app, browser
   localStorage, exports or Git. A sharing URL grants read access to its holder.
+- Calendar URLs use HTTPS with DNS address checks and pinning, including every
+  redirect. Private and reserved networks are blocked. Calendar feeds are read-only.
 - Calendar defaults to redacting event titles as Busy. Weather shares selected
   coordinates with Open-Meteo. Use approximate town-level coordinates.
 - Public packages exclude device files. Keep backups outside the repository:

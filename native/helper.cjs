@@ -8,6 +8,10 @@ const https = require('node:https');
 const path = require('node:path');
 const {expandCalendar, validateIntegrations} = require('./integrations.cjs');
 const firmware=require('./firmware.cjs');
+const {normalizeWeather,searchUrl}=require('./weather.cjs');
+const {parseMemory,releaseIdleApps,applyPreload}=require('./performance.cjs');
+const {spawn}=require('node:child_process');
+const {fetchCalendar}=require('./calendar-feed.cjs');
 const ROOT = process.env.OWN_TV_DATA || '/var/lib/own-tv';
 function read(name, fallback) { try { return JSON.parse(fs.readFileSync(path.join(ROOT, name), 'utf8')); } catch { return fallback; } }
 function write(name, value) {
@@ -28,13 +32,14 @@ async function appIcons(apps) {
  const cached=read('icons-cache.json',{at:0,items:{}});
  const priority=['youtube.leanback.v4','tv.twitch.tv.starshot.lg','spotify-beehive','netflix','amazon','com.disney.disneyplus-prod','com.netrtl.tvnow'];
  const ordered=[...apps].sort((a,b)=>(priority.includes(a.id)?priority.indexOf(a.id):-1+100)-(priority.includes(b.id)?priority.indexOf(b.id):-1+100));
- let budget=120000;const items={};
+ let budget=120000;const items={};let changed=Date.now()-cached.at>=86400000;
  for(const app of ordered){
-  let data=cached.items[app.id]?.version===app.version&&Date.now()-cached.at<86400000?cached.items[app.id].data:null;
-  if(!data){try{data=await ghIcon(app.id);}catch{continue;}}
-  if(data&&data.length<=budget){items[app.id]={version:app.version,data};budget-=data.length;}
+  const hit=cached.items[app.id]&&cached.items[app.id].version===app.version&&Date.now()-cached.at<86400000;
+  let data=hit?cached.items[app.id].data:null;
+  if(!hit){changed=true;try{data=await ghIcon(app.id);}catch{data=null;}}
+  if(!data||data.length<=budget){items[app.id]={version:app.version,data};if(data)budget-=data.length;}
  }
- write('icons-cache.json',{at:Date.now(),items});return items;
+ if(changed)write('icons-cache.json',{at:Date.now(),items});return items;
 }
 function ghIcon(id) {
  return new Promise((resolve,reject)=>{
@@ -55,30 +60,34 @@ function getText(url, maxBytes=2000000) {
   });req.on('timeout',()=>req.destroy(new Error('Provider timed out')));req.on('error',()=>reject(new Error('Provider connection failed')));
  });
 }
-function weatherLabel(code){if(code===0)return 'Clear';if(code===1)return 'Mostly clear';if(code===2)return 'Partly cloudy';if(code===3)return 'Overcast';if(code===45||code===48)return 'Fog';if(code>=51&&code<=57)return 'Drizzle';if(code>=61&&code<=67)return 'Rain';if(code>=71&&code<=77)return 'Snow';if(code>=80&&code<=82)return 'Rain showers';if(code>=85&&code<=86)return 'Snow showers';if(code>=95)return 'Thunderstorm';return 'Weather';}
 async function integrations() {
  const cfg=read('integrations.json',{}), result={calendar:{configured:false,events:[]},weather:{configured:false},smartHome:{configured:false,devices:[]}};
  if(cfg.weather){
   const w=cfg.weather;result.weather={configured:true,city:w.label};
   try {
    const cached=read('weather-cache.json',null);
-   const d=cached&&Date.now()-cached.at<30*60*1000?cached: {at:Date.now(),data:JSON.parse(await getText('https://api.open-meteo.com/v1/forecast?latitude='+w.latitude+'&longitude='+w.longitude+'&current=temperature_2m,weather_code&timezone=auto'))};
-   write('weather-cache.json',d);result.weather.temperature=d.data.current.temperature_2m;result.weather.condition=weatherLabel(d.data.current.weather_code);result.weather.updatedAt=d.at;
+   const d=cached&&Date.now()-cached.at<30*60*1000&&cached.data?.daily?cached: {at:Date.now(),data:JSON.parse(await getText('https://api.open-meteo.com/v1/forecast?latitude='+w.latitude+'&longitude='+w.longitude+'&current=temperature_2m,weather_code&daily=sunrise,sunset&timezone=auto&timeformat=unixtime&forecast_days=4'))};
+   if(d!==cached)write('weather-cache.json',d);result.weather=normalizeWeather(d.data,w.label,d.at);
   }catch{result.weather.error='Weather unavailable';}
  }
  if(cfg.calendar){
   result.calendar.configured=true;
   try {
    const cached=read('calendar-cache.json',null);
-   const d=cached&&Date.now()-cached.at<15*60*1000?cached:{at:Date.now(),events:expandCalendar(await getText(cfg.calendar.feedUrl),new Date(),14,cfg.calendar.busyOnly!==false)};
-   write('calendar-cache.json',d);result.calendar.events=d.events;result.calendar.updatedAt=d.at;
+   const d=cached&&Date.now()-cached.at<15*60*1000?cached:{at:Date.now(),events:expandCalendar(await fetchCalendar(cfg.calendar.feedUrl),new Date(),14,cfg.calendar.busyOnly!==false)};
+   if(d!==cached)write('calendar-cache.json',d);result.calendar.events=d.events;result.calendar.updatedAt=d.at;
   }catch{result.calendar.error='Calendar unavailable';}
  }
  return result;
 }
 function safeApp(id){return typeof id==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$/.test(id);}
+async function cachedGh(name,route,ttl){
+ const cached=read(name,null);
+ if(cached&&Date.now()-cached.at<ttl)return cached.data;
+ const data=await gh(route);write(name,{at:Date.now(),data});return data;
+}
 async function state() {
- const results=await Promise.allSettled([gh('/api/stats'),gh('/api/apps'),gh('/api/home/recents'),gh('/api/privacy'),gh('/api/hdmi'),integrations()]);
+ const results=await Promise.allSettled([gh('/api/stats'),cachedGh('apps-cache.json','/api/apps',300000),gh('/api/home/recents'),cachedGh('privacy-cache.json','/api/privacy',300000),cachedGh('inputs-cache.json','/api/hdmi',300000),integrations()]);
  const val=(n,fallback)=>results[n].status==='fulfilled'?results[n].value:fallback;
  const stats=val(0,{}), apps=val(1,{}),recent=val(2,{}),privacy=val(3,{}),hdmi=val(4,{});
  const installed=(apps.installed||stats.apps||[]).filter(a=>safeApp(a.id));
@@ -88,13 +97,39 @@ async function state() {
  const health={model:stats.device?.model,firmware:stats.system?.firmware,webos:stats.system?.webos,panelHours:stats.oled?.panel_usage_units!=null?stats.oled.panel_hours_exact:undefined,panelCompensationCycles:stats.oled?.comp_cycles,panelRefresherCycles:stats.oled?.refresher_cycles,temperature:typeof stats.temp==='number'?stats.temp:undefined,uptimeSeconds:stats.uptime,memoryUsedPercent:memory.usedPercent??memory.usedPct};
  const available=memory.available??memory.avail;
  if(health.memoryUsedPercent==null&&memory.total&&available!=null)health.memoryUsedPercent=Math.round((memory.total-available)*100/memory.total);
+ try{Object.assign(health,parseMemory(fs.readFileSync('/proc/meminfo','utf8')));}catch{}
+ health.lowMemoryMode=read('performance.json',{}).enabled===true;
+ health.idleReleaseSupported=String(health.model||'').split('.')[0]==='OLED65C51LA';
  const inputs=Object.entries(stats.inputs||{}).map(([key,title])=>({id:'com.webos.app.'+key,title,connected:undefined}));
  const catalog=hdmi.inputs||hdmi.ports||[];
  if(Array.isArray(catalog))for(const input of inputs){const found=catalog.find(p=>p.id===input.id||p.appId===input.id);if(found&&typeof found.connected==='boolean')input.connected=found.connected;}
  return {apps:list,inputs,recent:(recent.apps||[]).map(a=>({id:a.id,title:a.title})),health,privacy:{trackingOff:typeof privacy.simple?.total==='number'?privacy.simple.total===0:undefined,adBlocking:privacy.adblock?privacy.adblock.mode==='ads'||privacy.adblock.mode==='full':undefined,summary:privacy.simple?privacy.simple.total===0?'Privacy controls applied':'Review privacy controls':'Privacy status unavailable'},sleepTimer:stats.sleepTimer==null?undefined:{minutesRemaining:Number(stats.sleepTimer)||0},preferencesRevision:(()=>{try{return fs.statSync(path.join(ROOT,'preferences.json')).mtimeMs;}catch{return 0;}})(),preferences:read('preferences.json',null),...val(5,{calendar:{configured:false,events:[]},weather:{configured:false},smartHome:{configured:false,devices:[]}}),errors:results.slice(0,5).filter(r=>r.status==='rejected').length};
 }
+function luna(uri,body){return new Promise((resolve,reject)=>{
+ const child=spawn('/usr/bin/luna-send',['-n','1','-w','3000','luna://'+uri,JSON.stringify(body)],{stdio:['pipe','pipe','ignore']});
+ let raw='';const timer=setTimeout(()=>{child.kill();reject(Error('TV command timed out'));},5000);
+ child.stdout.on('data',b=>raw+=b);child.on('error',e=>{clearTimeout(timer);reject(e);});
+ child.on('close',()=>{clearTimeout(timer);try{const r=JSON.parse(raw.trim());if(r.returnValue===false)throw Error(r.errorText||'TV command refused');resolve(r);}catch(e){reject(e);}});
+});}
 async function main(action, argument) {
  if(action==='state')return state();
+ if(action==='weatherSearch'){const r=JSON.parse(await getText(searchUrl(argument),65536));return {ok:true,places:(r.results||[]).map(p=>({label:String(p.name).slice(0,40),region:[p.admin1,p.country].filter(Boolean).join(', '),latitude:p.latitude,longitude:p.longitude}))};}
+ if(action==='memoryMode'){
+  if(typeof argument!=='boolean')throw Error('Invalid memory mode');
+  const stats=await gh('/api/stats');if(String(stats.device?.model||'').split('.')[0]!=='OLED65C51LA')throw Error('Memory mode is unverified on this model.');
+  const previous=read('performance.json',{enabled:false,before:{}});
+  // Capture the originals before writing any policies, including across a restart.
+  const policy=await luna('com.webos.service.preloadmanager/getPreloadPolicy',{});
+  if(!Array.isArray(policy.applications))throw Error('Preload policy unavailable');
+  const before={...previous.before};for(const p of policy.applications)if(['youtube.leanback.v4','netflix','amazon','com.webos.app.lgchannels'].includes(p.id)&&typeof p.isEnabled==='boolean'&&!(p.id in before))before[p.id]=p.isEnabled;
+  if(!Object.keys(before).length)throw Error('No supported video preload policies');
+  const next={enabled:argument,before};
+  write('performance.json',next);
+  try{await applyPreload(luna,next,!argument);write('performance.json',next);}catch(e){write('performance.json',previous);try{await applyPreload(luna,next,true);}catch{}throw e;}
+  if(argument)try{await releaseIdleApps(luna);}catch{}
+  return {ok:true,enabled:argument};
+ }
+ if(action==='releaseIdleApps'){const stats=await gh('/api/stats');if(String(stats.device?.model||'').split('.')[0]!=='OLED65C51LA')throw Error('Idle-app release is unverified on this model.');return releaseIdleApps(luna);}
  if(action==='firmwareCheck'){
   const stats=await gh('/api/stats'), apps=await gh('/api/apps'), device=read('device-capabilities.json',{});
   let hb={};try{hb=JSON.parse(fs.readFileSync('/media/developer/apps/usr/palm/applications/org.webosbrew.hbchannel/appinfo.json','utf8'));}catch{}
@@ -104,7 +139,7 @@ async function main(action, argument) {
  }
 
  if(action==='weather'){const cfg=read('integrations.json',{});const weather=validateIntegrations({weather:argument}).weather;cfg.weather=weather;write('integrations.json',cfg);try{fs.unlinkSync(path.join(ROOT,'weather-cache.json'));}catch{}return {ok:true};}
- if(action==='configure'){const cfg=validateIntegrations(argument);write('integrations.json',cfg);for(const name of ['calendar-cache.json','weather-cache.json'])try{fs.unlinkSync(path.join(ROOT,name));}catch{}return {ok:true};}
+ if(action==='configure'){const patch=validateIntegrations(argument),cfg={...read('integrations.json',{}),...patch};for(const name of ['calendar','weather'])if(argument[name]===null)delete cfg[name];write('integrations.json',cfg);for(const name of ['calendar','weather'])if(name in argument)try{fs.unlinkSync(path.join(ROOT,name+'-cache.json'));}catch{}return {ok:true};}
  if(action==='preferences'){if(!argument||typeof argument!=='object'||Array.isArray(argument)||JSON.stringify(argument).length>65536)throw new Error('Invalid preferences');if(argument.schema!==1)throw new Error('Unsupported preference schema');write('preferences.json',argument);return {ok:true,revision:fs.statSync(path.join(ROOT,'preferences.json')).mtimeMs};}
  if(action==='launch'){
   if(!safeApp(argument))throw new Error('Invalid app id');

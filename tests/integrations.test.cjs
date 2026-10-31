@@ -2,8 +2,8 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {expandCalendar,validateIntegrations}=require('../native/integrations.cjs');
 const {safeApp}=require('../native/helper.cjs');
-test('private integration URLs cannot turn into arbitrary outbound requests',()=>{
- for(const url of ['http://calendar.proton.me/api/calendar/x','https://example.com/private.ics','https://calendar.proton.me@127.0.0.1/api/calendar/x','https://calendar.proton.me:8443/api/calendar/x','https://calendar.proton.me/'])assert.throws(()=>validateIntegrations({calendar:{feedUrl:url}}));
+test('credentialed and private-network calendar URLs are refused',()=>{
+ for(const url of ['http://calendar.proton.me/api/calendar/x','https://calendar.proton.me@127.0.0.1/api/calendar/x','https://calendar.proton.me:8443/api/calendar/x','https://calendar.proton.me/'])assert.throws(()=>validateIntegrations({calendar:{feedUrl:url}}));
  assert.equal(validateIntegrations({calendar:{feedUrl:'https://calendar.proton.me/api/calendar/v1/url/secret/calendar.ics'}}).calendar.busyOnly,true);
  assert.throws(()=>validateIntegrations({weather:{latitude:100,longitude:0}}));
 });

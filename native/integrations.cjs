@@ -1,16 +1,13 @@
 'use strict';
-const ICAL=require('ical.js');
 function validateIntegrations(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('Invalid integrations');
  const out={};
  if(input.weather){const w=input.weather;if(!Number.isFinite(w.latitude)||!Number.isFinite(w.longitude)||Math.abs(w.latitude)>90||Math.abs(w.longitude)>180)throw new Error('Invalid weather coordinates');out.weather={latitude:w.latitude,longitude:w.longitude,label:String(w.label||'Local weather').slice(0,80)};}
- if(input.calendar){let u;try{u=new URL(input.calendar.feedUrl);}catch{throw new Error('Invalid Proton feed URL');}
-  if(u.protocol!=='https:'||u.hostname!=='calendar.proton.me'||u.username||u.password||u.port||u.hash)throw new Error('Use an HTTPS calendar.proton.me feed URL');
-  if(!u.pathname.startsWith('/api/calendar/'))throw new Error('Use the calendar sharing feed, not the Proton website address');
-  out.calendar={feedUrl:u.href,busyOnly:input.calendar.busyOnly!==false};}
+ if(input.calendar){out.calendar={feedUrl:require('./calendar-feed.cjs').feedUrl(input.calendar.feedUrl),busyOnly:input.calendar.busyOnly!==false};}
  return out;
 }
 function expandCalendar(text, now=new Date(), days=14,busyOnly=true){
+ const ICAL=require('ical.js');
  const root=new ICAL.Component(ICAL.parse(text));
  for(const zone of root.getAllSubcomponents('vtimezone')){const id=zone.getFirstPropertyValue('tzid');if(id)ICAL.TimezoneService.register(id,new ICAL.Timezone(zone));}
  const lower=now.getTime(),upper=lower+days*86400000,events=[];

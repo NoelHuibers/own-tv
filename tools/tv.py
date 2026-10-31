@@ -52,7 +52,7 @@ class TV:
         # Explicit list: credentials, config files and unrelated node_modules
         # never enter the TV helper deployment or a public release package.
         with tarfile.open(fileobj=bundle,mode='w',format=tarfile.USTAR_FORMAT) as tar:
-            for name in ['helper.cjs','integrations.cjs','firmware.cjs','home-route.cjs']:tar.add(ROOT/'native'/name,arcname=name)
+            for name in ['helper.cjs','integrations.cjs','firmware.cjs','home-route.cjs','weather.cjs','performance.cjs','calendar-feed.cjs']:tar.add(ROOT/'native'/name,arcname=name)
             tar.add(ROOT/'compatibility/firmware.json',arcname='compatibility/firmware.json')
             build=json.dumps({'version':json.loads((ROOT/'package.json').read_text())['version']}).encode();info=tarfile.TarInfo('build.json');info.size=len(build);info.mode=0o600;tar.addfile(info,io.BytesIO(build))
             dependency=ROOT/'node_modules/ical.js'
@@ -75,10 +75,12 @@ class TV:
         current=before.get('settings',{}).get('defaultApps')
         if not isinstance(current,dict):raise RuntimeError('This TV has no supported defaultApps home setting. Use the app as a normal launcher; do not patch system partitions.')
         if not restore:
-            self.run('cat > /var/lib/own-tv/home-route.cjs',(ROOT/'native/home-route.cjs').read_bytes())
+            for native_file in ['home-route.cjs','performance.cjs']:
+                self.run('cat > /var/lib/own-tv/'+native_file,(ROOT/'native'/native_file).read_bytes())
             self.run('test -f /var/lib/own-tv/home-before.json || cat > /var/lib/own-tv/home-before.json',json.dumps(current).encode())
             current={**current,'home':APP}
         else:
+            self.run('if [ -f /var/lib/own-tv/performance.json ]; then /usr/bin/node /var/lib/own-tv/helper.cjs memoryMode ZmFsc2U=; fi')
             saved=json.loads(self.run('cat /var/lib/own-tv/home-before.json'))
             # Restore only Home, preserve any other settings changed meanwhile.
             current['home']=saved.get('home','com.webos.app.home')

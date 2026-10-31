@@ -26,6 +26,9 @@
  window.OwnTVBridge={
   getState:function(){return call('state');},
   checkFirmware:function(){return call('firmwareCheck');},
+  releaseIdleApps:function(){return call('releaseIdleApps');},
+  setMemoryMode:function(enabled){return call('memoryMode',enabled);},
+  searchWeather:function(query){return call('weatherSearch',query);},
   launch:function(id){if(typeof id!=='string'||!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$/.test(id))return Promise.reject(new Error('Invalid app'));return call('launch',id);},
   setSleepTimer:function(minutes){return call('sleep',Number(minutes));},
   screenOff:function(){return call('screenOff');},
@@ -33,6 +36,7 @@
   openSettings:function(){return call('settings');},
   savePreferences:function(prefs){return call('preferences',prefs);},
   configureWeather:function(weather){return call('weather',weather);},
+  clearWeather:function(){return call('configure',{weather:null});},
   openEditor:function(){if(editor){location.href='/integrations';return Promise.resolve({ok:true});}return Promise.reject(new Error('On your computer, run: python3 tools/editor.py --ssh-config PATH --host YOUR_TV_ALIAS'));}
  };
  window.OwnTVBridge.capabilities={configureWeather:true,openEditor:editor};

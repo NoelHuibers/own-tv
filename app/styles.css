@@ -232,6 +232,7 @@ html.is-nobridge .banner strong { color: var(--bad); }
 .cards {
   display: flex; gap: var(--card-gap);
   overflow-x: auto; overflow-y: hidden;
+  scroll-behavior: auto; scroll-padding-inline: 1.2rem;
   padding: 1.8rem 1.2rem 0.2rem;
   margin: -1.8rem -1.2rem -0.2rem;
   scrollbar-width: none;
@@ -247,7 +248,7 @@ html[data-theme="day"] .card, html[data-theme="day"] .rec, html[data-theme="day"
   background: var(--f); color: var(--i);
   overflow: hidden;
   box-shadow: 0 0.6rem 1.4rem -1rem rgba(0, 0, 0, 0.6);
-  transition: transform 0.34s var(--ease), box-shadow 0.34s var(--ease), opacity 0.34s ease, filter 0.34s ease;
+  transition: transform 0.20s var(--ease), opacity 0.16s ease;
 }
 /* Soft top light: gives the colour field depth without a texture. */
 .card::before {
@@ -260,7 +261,7 @@ html[data-theme="day"] .card::before { background: linear-gradient(180deg, rgba(
   width: var(--icon); height: var(--icon); object-fit: cover;
   border-radius: 22%;
   box-shadow: 0 0.8rem 1.8rem -0.8rem rgba(0, 0, 0, 0.55);
-  transition: transform 0.34s var(--ease);
+  transition: transform 0.20s var(--ease);
 }
 .card__word {
   padding: 0 1rem; text-align: center;
@@ -282,10 +283,10 @@ html[data-theme="day"] .card::before { background: linear-gradient(180deg, rgba(
 .card:focus .card__icon { transform: scale(1.04); }
 .card[aria-busy="true"] { opacity: 0.6; }
 /* When the row has focus, the others step back a little. */
-.cards:focus-within .card:not(:focus) { opacity: 0.74; filter: saturate(0.85); }
+.cards:focus-within .card:not(:focus) { opacity: 0.82; }
 .card__cap {
   margin-top: 1.15rem; min-height: 3.4rem;
-  width: max-content; max-width: 18rem;
+  width: 100%; max-width: 100%;
   opacity: 0; transform: translateY(-0.4rem);
   transition: opacity 0.26s ease, transform 0.34s var(--ease);
 }
@@ -318,12 +319,12 @@ html[data-style="compact"] .card--word + .card__cap .card__name { display: block
   border-radius: 1.2rem; border: 0.1rem solid var(--w-border);
   background: var(--w-bg); color: var(--ink);
   font-size: 1.15rem; text-align: left;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.3s var(--ease);
+  transition: background-color 0.16s ease;
 }
 button.w__face:focus {
   background: var(--w-bg-focus);
   box-shadow: 0 0 0 0.24rem var(--bg), 0 0 0 0.5rem var(--focus);
-  transform: translateY(-0.2rem);
+  transform: none;
 }
 div.w__face { transition: border-color 0.2s ease; }
 .w:focus-within div.w__face { border-color: var(--rule-strong); }
@@ -361,18 +362,18 @@ div.w__face { transition: border-color 0.2s ease; }
 
 /* Details unfold above the widget, into the quiet band under the cards. */
 .w__more {
-  position: absolute; left: 0; bottom: calc(100% + 0.8rem);
+  position: absolute; left: 0; bottom: calc(100% + 1.3rem);
   width: max(100%, 26rem); max-width: 32rem;
   padding: 0.95rem 1.2rem 1rem;
   border-radius: 1.1rem; border: 0.1rem solid var(--pop-border);
   background: var(--pop-bg);
   font-size: 1.05rem; line-height: 1.4; color: var(--ink-2);
-  opacity: 0; transform: translateY(0.6rem); pointer-events: none;
-  transition: opacity 0.22s ease, transform 0.32s var(--ease);
+  opacity: 0; transform: none; pointer-events: none; visibility: hidden;
+  transition: opacity 0.14s ease;
   z-index: 3;
 }
 .shelf .w:nth-last-child(-n+2) .w__more { left: auto; right: 0; }
-.w:focus-within .w__more { opacity: 1; transform: none; }
+.w:focus-within .w__more { opacity: 1; transform: none; visibility: visible; }
 .w__more > * + * { margin-top: 0.5rem; }
 .w__hint { font-size: 0.92rem; color: var(--ink-3); }
 .w__meta { font-size: 0.95rem; color: var(--ink-3); }
@@ -507,7 +508,7 @@ html[data-style="compact"] .w__face > .w__label { grid-column: 1; grid-row: 1 / 
 html[data-style="compact"] .w__value, html[data-style="compact"] .w__evs, html[data-style="compact"] .chips, html[data-style="compact"] .recs { margin-top: 0; }
 html[data-style="compact"] button.w__face:focus { transform: none; box-shadow: inset 0 0 0 0.24rem var(--focus); }
 html[data-style="compact"] .w__more {
-  position: static; width: auto; max-width: none; opacity: 1; transform: none; pointer-events: auto;
+  position: static; width: auto; max-width: none; opacity: 1; visibility: visible; transform: none; pointer-events: auto;
   background: transparent; border: 0; border-radius: 0;
   margin: -0.25rem 1.2rem 0 9.8rem; padding: 0 0 0.5rem; font-size: 0.98rem;
 }
@@ -841,7 +842,7 @@ html[data-motion="reduced"] .atmo { display: none; }
   html[data-style="quiet"] .w + .w::before { display: none; }
   .w__face { height: auto; min-height: 7.4rem; background: transparent; border-color: transparent; }
   .w__more {
-    position: static; width: auto; max-width: none; opacity: 1; transform: none; pointer-events: auto;
+    position: static; width: auto; max-width: none; opacity: 1; visibility: visible; transform: none; pointer-events: auto;
     background: transparent; border: 0; border-top: 0.1rem solid var(--rule); border-radius: 0;
     margin: 0 1.2rem; padding: 0.6rem 0 0.9rem;
   }
@@ -871,3 +872,72 @@ html[data-motion="reduced"] .atmo { display: none; }
   .top__when { flex-wrap: wrap; }
   .banner { white-space: normal; position: static; transform: none; margin-bottom: 0.8rem; flex-wrap: wrap; }
 }
+
+/* TV status: two quiet readouts and a separate, clearly spaced report. */
+.health-face { display:flex; gap:1.5rem; width:100%; }
+.health-face__reading { display:flex; flex-direction:column; gap:0.3rem; min-width:0; }
+.health-face__label { font-size:0.85rem; color:var(--ink-3); font-weight:400; }
+.health-face strong { font-size:1.95rem; font-weight:400; letter-spacing:-0.03em; }
+.health-face small { font-size:1rem; color:var(--ink-2); }
+.health-heading { display:flex; justify-content:space-between; gap:1rem; font-size:1rem; color:var(--ink); font-weight:600; }
+.health-system { color:var(--ink-3); font-weight:400; white-space:nowrap; }
+.health-stats { display:grid; grid-template-columns:1fr 1fr; gap:1rem; padding:0.75rem 0; border-bottom:0.05rem solid var(--rule); }
+.health-stat dt { font-size:0.85rem; color:var(--ink-3); }
+.health-stat dd { font-size:1.6rem; font-weight:400; color:var(--ink); margin-top:0.15rem; }
+.health-readings { font-size:0.95rem; padding:0.3rem 0; }
+.health-note { font-size:0.85rem; line-height:1.4; color:var(--ink-3); white-space:normal; }
+.w--health .w__more { width:28rem; max-width:min(32rem, 90vw); padding:1.2rem 1.4rem; }
+.w--health .w__value { overflow:visible; margin-top:0.55rem; }
+.w--health .w__sub { font-size:0.9rem; }
+.w--health .badge { border:0; padding:0.15rem 0; font-size:0.85rem; }
+.w--health .badges { gap:1.1rem; border-top:0.05rem solid var(--rule); padding-top:0.5rem; }
+html[data-style="compact"] .health-face { gap:1rem; }
+html[data-style="compact"] .health-face__reading { flex-direction:row; align-items:baseline; gap:0.5rem; }
+html[data-style="compact"] .health-face strong { font-size:1.3rem; }
+html[data-style="compact"] .health-stats { padding:0.3rem 0; }
+html[data-style="compact"] .health-stat dd { font-size:1.1rem; }
+html[data-style="compact"] .health-note { display:none; }
+html[data-style="compact"] .w--health .w__more { width:auto; max-width:none; padding:0 0 0.5rem; }
+@media (max-width:1100px), (orientation:portrait) {
+  .w--health .w__more { width:auto; max-width:none; }
+}
+
+.w--health .w__more { width:48rem; max-width:calc(100vw - 9.6rem); padding:0.9rem 1.2rem; }
+.health-peek .health-heading { align-items:center; gap:0.7rem; font-size:0.95rem; }
+.health-peek .health-system { margin-right:auto; }
+.health-peek .health-stats { grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.2rem; border:0; padding:0.7rem 0 0.2rem; }
+.health-peek .health-stat dd { font-size:1.4rem; white-space:nowrap; }
+.health-peek .badges { border:0; padding:0; }
+.health-peek .badge { font-size:0.8rem; }
+html[data-style="compact"] .w--health .w__more { width:auto; max-width:none; }
+html[data-style="compact"] .health-peek .health-heading { flex-wrap:wrap; }
+html[data-style="compact"] .health-peek .health-stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.3rem 1rem; }
+html[data-style="compact"] .health-peek .health-stat dd { font-size:1.05rem; }
+html[data-style="compact"] .health-peek .health-heading > .badges { display:none; }
+@media (max-width:1100px), (orientation:portrait) {
+ .w--health .w__more { width:auto; max-width:none; }
+ .health-peek .health-heading { flex-wrap:wrap; }
+ .health-peek .health-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+.w--health .w__value { margin-top:auto; }
+.health-face__reading { gap:0.2rem; }
+.health-face__label { font-size:0.8rem; line-height:1.1; }
+.health-face strong { line-height:1; }
+
+.weather-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1rem; align-items:end; margin-top:1rem; }
+.weather-coordinates { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:0.7rem; }
+.weather-results { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-top:0.7rem; }
+.place { display:flex; flex-direction:column; align-items:flex-start; gap:0.2rem; background:var(--surface-2); border:0.05rem solid var(--rule); border-radius:0.7rem; padding:0.6rem 0.8rem; text-align:left; min-width:0; }
+.place strong { font-size:1.05rem; font-weight:500; }
+.place span { color:var(--ink-3); font-size:0.85rem; }
+#sheet-body[data-section="weather"] .srow { padding:0.5rem 0; }
+#sheet-body[data-section="weather"] .sheet__head { margin-bottom:0.5rem; }
+#sheet-body[data-section="weather"] .formrow { margin-top:0.8rem; }
+#sheet-body[data-section="weather"] .note { font-size:0.95rem; }
+@media (max-width:600px) {
+ .weather-search { grid-template-columns:minmax(0,1fr); }
+ .weather-coordinates, .weather-results { grid-template-columns:1fr; }
+}
+
+html[data-style="compact"] .w--health .w__more { margin-top:0.4rem; }

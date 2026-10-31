@@ -370,3 +370,36 @@ option. The separate Recent Apps shelf was removed. Returning from another app
 refreshes the order immediately. The TV panel-hours counter is exposed in This TV
 details. This TV settings include a firmware compatibility check with no automatic
 installer; see FIRMWARE.md. These changes were integrated after design review.
+
+
+## Navigation and status refinement (0.1.1)
+
+Horizontal app navigation follows the rail's order, using untransformed card
+containers for scrolling. Focus zoom and outlines have reserved gutters; holding
+Left or Right at either end stays on that app. Cards no longer animate filter or
+focus-shadow paints. A rail replacement preserves its scroll position.
+
+This TV has temperature and memory readouts, available RAM, and a short horizontal
+report in the space above the widget. Its 1.3rem separation exceeds the 0.5rem
+focus ring at every animation frame. The complete memory explanation lives in
+About. Memory is for the whole TV, calculated from MemAvailable, including
+reclaimable caches; process RSS values should not be added together.
+
+Hidden dashboard pages stop clock/shelf redraws, pixel shifting and idle checks.
+Slow-changing app inventories, privacy and HDMI data are cached for five minutes;
+readings and recent launches remain fresh on each poll. Successful and absent
+app icons are cached without rewriting the cache on each read. Calendar parsing
+loads only when a calendar is configured. The OLED screensaver remains enabled.
+
+
+Weather settings start with city search; manual coordinates expand on demand in
+one two-column row. The compact form scales with the TV viewport. Calendar uses
+provider-neutral ICS subscription links stored only in the backend.
+
+The optional C5 More free RAM mode uses LG's live get/setPreloadPolicy methods;
+this firmware does not export its supportAppList config key. It saves original
+per-app policies privately, changes only Netflix, YouTube, Prime and LG Channels,
+and uses the existing Home router to reapply on startup/wake. The first return to
+Own TV after router startup releases those idle video processes. Spotify, system
+services, inputs and OLED protection remain active. Turning the mode off restores
+the saved policies. A separate manual release button is available in About.

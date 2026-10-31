@@ -15,3 +15,10 @@ config.local.json
 artifacts/
 
 *.local.json
+
+# Runtime and integration files belong outside the repository.
+integrations.json
+preferences.json
+performance.json
+device-capabilities.json
+*-cache.json

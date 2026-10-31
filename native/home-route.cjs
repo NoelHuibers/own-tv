@@ -2,6 +2,7 @@
 // Reversible foreground routing; no network listener or firmware-file changes.
 const fs=require('node:fs');
 const {spawn}=require('node:child_process');
+const {applyPreload,releaseIdleApps}=require('./performance.cjs');
 const ROOT='/var/lib/own-tv';
 const APP='io.github.noelhuibers.owntv';
 const STOCK=new Set(['com.webos.app.home','com.webos.app.fullhome']);
@@ -39,7 +40,18 @@ function subscribe(){
  let pending='';subscription.stdout.on('data',b=>{pending+=b.toString();if(pending.length>65536)pending='';let i;while((i=pending.indexOf('\n'))!==-1){const line=pending.slice(0,i).trim();pending=pending.slice(i+1);try{const d=JSON.parse(line);if(d.appId)foreground(d.appId);}catch{}}});
  subscription.on('error',()=>{});subscription.on('close',()=>{subscription=null;if(!stopping)setTimeout(subscribe,5000);});
 }
-async function check(){if(stopping)return;try{const d=await once('com.webos.applicationManager/getForegroundAppInfo',{});await foreground(d.appId);}catch{}}
+let memoryBusy=false,memoryPrepared=false;
+async function enforceMemory(appId){
+ if(memoryBusy||stopping)return;
+ let settings;try{settings=JSON.parse(fs.readFileSync(ROOT+'/performance.json','utf8'));}catch{return;}
+ if(settings.enabled!==true){memoryPrepared=false;return;}
+ memoryBusy=true;try{await applyPreload(once,settings);
+  const current=JSON.parse(fs.readFileSync(ROOT+'/performance.json','utf8'));
+  if(current.enabled!==true){await applyPreload(once,settings,true);return;}
+  if(!memoryPrepared&&appId===APP){await releaseIdleApps(once);memoryPrepared=true;}
+ }catch{}finally{memoryBusy=false;}
+}
+async function check(){if(stopping)return;try{const d=await once('com.webos.applicationManager/getForegroundAppInfo',{});await foreground(d.appId);enforceMemory(d.appId);}catch{}}
 function stop(){stopping=true;if(subscription)subscription.kill();try{if(fs.readFileSync(PID,'utf8').trim()===String(process.pid))fs.unlinkSync(PID);}catch{}process.exit(0);}
 process.on('SIGTERM',stop);process.on('SIGINT',stop);
 subscribe();check();setInterval(check,10000);

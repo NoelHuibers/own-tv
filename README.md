@@ -11,12 +11,13 @@ that every launcher feature works there. This project does not root your TV.
 ## What it does
 
 - Remote-friendly home dashboard and customization controls.
-- Ambient, Quiet and Compact styles; day/night appearance and an optional schedule.
+- Ambient, Quiet and Compact styles; day/night appearance with sunrise/sunset, schedule or system switching.
 - Recent-first app favorites (or manual order), optional HDMI inputs, panel hours, health readings and sleep timer.
-- Optional Open-Meteo weather and a read-only Proton Calendar agenda.
+- Optional Open-Meteo weather and a read-only calendar agenda (Google, Apple/iCloud, Proton, Outlook, ICS).
 - Private computer editor over SSH; integration credentials never enter Git.
 - Default Home routing that catches direct LG Home launches, private backups and explicit rollback.
 - A conservative firmware-compatibility checker; it never installs unverified firmware.
+- Optional C5 memory mode to prevent video-app preloading, with restore and idle-app release controls.
 - A smart-home setup panel; actual smart-home control is not implemented yet.
 
 Live widgets show unavailable/setup states when disconnected. They do not invent
@@ -63,7 +64,7 @@ python3 tools/editor.py --ssh-config /path/to/private/ssh_config --host living-r
 ```
 
 Open the loopback URL printed by the command. Add `/integrations` to configure
-weather and a private Proton Calendar feed. No public server is needed. The
+weather and a private calendar subscription. No public server is needed. The
 editor must stay running while you use it; the TV itself runs independently.
 
 `npm run preview` serves a disconnected browser preview. `npm run package` creates

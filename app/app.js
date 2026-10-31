@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '0.1.0';
+  var VERSION = '0.1.1';
   var STORE_KEY = 'owntv.preferences.v1';
   var EXPORT_KIND = 'owntv.preferences';
   var POLL_MS = 60 * 1000;
@@ -15,6 +15,7 @@
   var UA = navigator.userAgent || '';
   var IS_WEBOS = /Web0S|webOS|NetCast/i.test(UA) || typeof window.PalmSystem !== 'undefined';
   var root = document.documentElement;
+  root.setAttribute('data-version',VERSION);
 
   function $(id) { return document.getElementById(id); }
 
@@ -23,6 +24,26 @@
      ====================================================================== */
   var STRINGS = {
     en: {
+      "h.memoryModeNote": "Prevents Netflix, YouTube, Prime Video and LG Channels from preloading. They remain available; opening them may take longer. Reapplied by the Home router.",
+      "h.memoryMode": "More free RAM",
+      "set.wx.noResults": "No matching places. Try a nearby town or add the country.",
+      "set.wx.pick": "Choose a search result or enter coordinates",
+      "set.wx.coordinates": "Coordinates",
+      "set.wx.searching": "Searching…",
+      "set.wx.search": "Find city",
+      "set.wx.city": "City or town",
+      "h.release": "Release idle video apps",
+      "h.releasing": "Releasing…",
+      "h.released": "Released {n} idle video apps",
+      "h.releaseNote": "Closes idle video apps while Own TV is open. Keeps Spotify, system services and OLED protection running. Apps may start more slowly next time; LG may preload them again.",
+
+      "theme.cap.sunFallback": "Sun times unavailable · using the schedule below",
+      "theme.cap.sun": "Sunrise {sunrise} · sunset {sunset}",
+      "set.ap.sun": "Sunrise / sunset",
+      "h.memoryNote": "Whole-TV memory. Available RAM includes reclaimable cache; a high percentage alone does not mean the TV is slow.",
+      "h.availableShort": "{n} MiB available",
+      "h.cached": "File cache",
+      "h.available": "Available RAM",
       "h.panelHours": "Panel use",
       "set.apps.sort": "App order",
       "set.apps.recent": "Recently used first",
@@ -101,11 +122,11 @@
       'wx.error': 'The forecast could not be fetched right now. The last attempt failed on the TV.',
       'wx.updated': 'Updated {time}',
 
-      'cal.source': 'Proton Calendar',
+      "cal.source": "Calendar subscription",
       'cal.setup.title': 'Connect calendar',
-      'cal.setup.text': 'Your private Proton link stays in the TV backend, never on this screen.',
+      "cal.setup.text": "Your calendar subscription link stays in the private TV backend.",
       'cal.empty': 'Nothing in the next days',
-      'cal.updated': 'Proton Calendar · updated {time}',
+      'cal.updated': 'Calendar · updated {time}',
       'cal.unavailable': 'Calendar unavailable. Check the private integration.',
       'cal.busy': 'Busy',
       'cal.today': 'Today', 'cal.tomorrow': 'Tomorrow', 'cal.allDay': 'All day', 'cal.now': 'now',
@@ -191,7 +212,7 @@
 
       'set.w.lede': 'Widgets sit in one compact row under your apps. Focus one to see its details.',
       'set.w.weather': 'Weather', 'set.w.weather.d': 'Shows a setup prompt until you add a city. The TV fetches the forecast.',
-      'set.w.calendar': 'Calendar', 'set.w.calendar.d': 'Upcoming Proton Calendar events, read by the private TV backend.',
+      'set.w.calendar': 'Calendar', 'set.w.calendar.d': 'Upcoming Calendar events, read by the private TV backend.',
       'set.w.inputs': 'HDMI inputs', 'set.w.inputs.d': 'Switch sources; shows signal when the TV reports it.',
       'set.w.recent': 'Recent apps', 'set.w.recent.d': 'As reported by the TV.',
       'set.w.sleep': 'Sleep timer', 'set.w.sleep.d': 'Timers of 10, 30, 60, 90 or 120 minutes.',
@@ -203,8 +224,8 @@
       'style.ambient': 'Ambient', 'style.ambient.d': 'Big colour cards. The background takes on the colour of the app you focus.',
       'style.quiet': 'Quiet', 'style.quiet.d': 'Neutral surfaces, no colour wash. Typographic and still.',
       'style.compact': 'Compact', 'style.compact.d': 'Smaller tiles beside a grid of widgets, with every reading shown.',
-      'set.ap.mode': 'Theme', 'set.ap.mode.d': 'Night is OLED black for a dark room. Day is warm paper. Auto switches by schedule or system.',
-      'set.ap.source': 'Auto follows', 'set.ap.source.d': 'The schedule below, or the device’s light/dark setting.',
+      'set.ap.mode': 'Theme', "set.ap.mode.d": "Night is OLED black. Day is warm paper. Auto follows the source below.",
+      'set.ap.source': 'Auto follows', "set.ap.source.d": "Use weather’s sunrise/sunset, the schedule below, or the device’s light/dark setting.",
       'set.ap.schedule': 'Schedule', 'set.ap.system': 'System',
       'set.ap.dayStart': 'Day begins', 'set.ap.nightStart': 'Night begins',
       'set.ap.stepEarlier': '{what}: 15 minutes earlier', 'set.ap.stepLater': '{what}: 15 minutes later',
@@ -234,17 +255,17 @@
       'set.wx.err.lon': 'Longitude must be a number from −180 to 180.',
       'set.wx.noApi': '<strong>This bridge can’t receive a weather location yet.</strong> The location is saved here and included in exports. To activate weather, add the same latitude, longitude and city to the bridge configuration on your computer.',
       'set.wx.cleared': 'Weather location cleared',
-      'set.wx.how': 'Tip: look up your city on a map, copy its coordinates, and round them. The bridge fetches the forecast; this page never contacts a weather service itself.',
+      "set.wx.how": "Find your city, choose a result, then save. Approximate coordinates are enough. No API key is needed.",
 
-      'set.cal.lede': 'The agenda shows upcoming events from your Proton Calendar.',
+      "set.cal.lede": "Read-only agenda from Google, Apple/iCloud, Proton, Outlook or another ICS feed.",
       'set.cal.status': 'Bridge status',
       'set.cal.st.on': 'Connected · {n} upcoming events',
       'set.cal.st.off': 'Not connected',
       'set.cal.st.na': 'Unavailable without the TV bridge',
-      'set.cal.warn': '<strong>Never paste your calendar link into this dashboard.</strong> A Proton share link grants read access to your calendar. It belongs in the bridge’s private configuration, which this page cannot read.',
-      'set.cal.s1': 'In Proton Calendar on the web, open the calendar’s settings and create a share link (“Share with anyone”, full view or busy-only).',
-      'set.cal.s2': 'On the computer that manages your TV, add that link to the bridge’s private configuration — not to a file you publish or sync.',
-      'set.cal.s3': 'Restart or reload the bridge. Within a minute the agenda here switches from the setup card to your events.',
+      "set.cal.warn": "<strong>Subscription links grant read access.</strong> Add yours in the private computer editor; it stays out of this dashboard and exports.",
+      "set.cal.s1": "Copy a calendar subscription link: Google’s secret iCal address, Apple/iCloud Public Calendar, Proton sharing, Outlook publishing or another ICS feed.",
+      "set.cal.s2": "Paste it only in the private computer editor. HTTPS and webcal links are supported.",
+      "set.cal.s3": "Save. The agenda refreshes within a minute, then checks the feed every 15 minutes.",
       'set.cal.editor': 'Open bridge editor',
       'set.cal.noEditor': 'This bridge has no on-screen editor; use the steps above on your computer.',
 
@@ -290,6 +311,26 @@
       'set.ab.version': 'Version {v}'
     },
     de: {
+      "h.memoryModeNote": "Verhindert das Vorladen von Netflix, YouTube, Prime Video und LG Channels. Apps bleiben verfügbar, starten aber eventuell langsamer. Wird vom Home-Router erneut angewendet.",
+      "h.memoryMode": "Mehr freier RAM",
+      "set.wx.noResults": "Kein passender Ort. Nächste Stadt oder Land ergänzen.",
+      "set.wx.pick": "Suchergebnis wählen oder Koordinaten eingeben",
+      "set.wx.coordinates": "Koordinaten",
+      "set.wx.searching": "Suche…",
+      "set.wx.search": "Stadt suchen",
+      "set.wx.city": "Stadt oder Ort",
+      "h.release": "Inaktive Video-Apps schließen",
+      "h.releasing": "Wird freigegeben…",
+      "h.released": "{n} inaktive Video-Apps geschlossen",
+      "h.releaseNote": "Schließt inaktive Video-Apps, während Own TV geöffnet ist. Spotify, Systemdienste und OLED-Schutz bleiben aktiv. Apps starten danach eventuell langsamer; LG kann sie erneut vorladen.",
+
+      "theme.cap.sunFallback": "Sonnenzeiten fehlen · Zeitplan unten wird verwendet",
+      "theme.cap.sun": "Sonnenaufgang {sunrise} · Sonnenuntergang {sunset}",
+      "set.ap.sun": "Sonnenauf- / untergang",
+      "h.memoryNote": "Speicher des gesamten TVs. Verfügbarer RAM enthält freigebbaren Cache; ein hoher Prozentwert allein bedeutet keinen langsamen TV.",
+      "h.availableShort": "{n} MiB verfügbar",
+      "h.cached": "Datei-Cache",
+      "h.available": "RAM verfügbar",
       "h.panelHours": "Panel-Laufzeit",
       "set.apps.sort": "App-Reihenfolge",
       "set.apps.recent": "Zuletzt genutzt zuerst",
@@ -370,11 +411,11 @@
       'wx.error': 'Die Vorhersage konnte gerade nicht geladen werden. Der letzte Versuch ist auf dem Fernseher fehlgeschlagen.',
       'wx.updated': 'Aktualisiert {time}',
 
-      'cal.source': 'Proton Calendar',
+      "cal.source": "Kalender-Abonnement",
       'cal.setup.title': 'Kalender verbinden',
-      'cal.setup.text': 'Dein privater Proton-Link bleibt im TV-Backend, nie auf diesem Bildschirm.',
+      "cal.setup.text": "Dein Kalender-Abonnement-Link bleibt im privaten TV-Backend.",
       'cal.empty': 'In den nächsten Tagen nichts',
-      'cal.updated': 'Proton Calendar · aktualisiert {time}',
+      'cal.updated': 'Calendar · aktualisiert {time}',
       'cal.today': 'Heute', 'cal.tomorrow': 'Morgen', 'cal.allDay': 'Ganztägig', 'cal.now': 'jetzt',
       'cal.more': '+{n} weitere',
 
@@ -458,7 +499,7 @@
 
       'set.w.lede': 'Widgets stehen in einer kompakten Reihe unter deinen Apps. Fokussiere eins für Details.',
       'set.w.weather': 'Wetter', 'set.w.weather.d': 'Zeigt einen Hinweis, bis du eine Stadt hinzufügst. Der Fernseher holt die Vorhersage.',
-      'set.w.calendar': 'Kalender', 'set.w.calendar.d': 'Kommende Proton-Calendar-Termine, gelesen vom privaten TV-Backend.',
+      'set.w.calendar': 'Kalender', 'set.w.calendar.d': 'Kommende Kalendertermine, gelesen vom privaten TV-Backend.',
       'set.w.inputs': 'HDMI-Eingänge', 'set.w.inputs.d': 'Quelle wechseln; zeigt Signal, wenn der Fernseher es meldet.',
       'set.w.recent': 'Zuletzt genutzte Apps', 'set.w.recent.d': 'Wie vom Fernseher gemeldet.',
       'set.w.sleep': 'Sleep-Timer', 'set.w.sleep.d': 'Timer mit 10, 30, 60, 90 oder 120 Minuten.',
@@ -470,8 +511,8 @@
       'style.ambient': 'Ambient', 'style.ambient.d': 'Große Farbkarten. Der Hintergrund nimmt die Farbe der fokussierten App an.',
       'style.quiet': 'Ruhig', 'style.quiet.d': 'Neutrale Flächen, keine Farbstimmung. Typografisch und still.',
       'style.compact': 'Kompakt', 'style.compact.d': 'Kleinere Kacheln neben einem Widget-Raster, alle Werte sichtbar.',
-      'set.ap.mode': 'Design', 'set.ap.mode.d': 'Nacht ist OLED-Schwarz für dunkle Räume, Tag warmes Papier. Auto wechselt nach Zeitplan oder System.',
-      'set.ap.source': 'Auto folgt', 'set.ap.source.d': 'Dem Zeitplan unten oder der Hell/Dunkel-Einstellung des Geräts.',
+      'set.ap.mode': 'Design', "set.ap.mode.d": "Nacht ist OLED-Schwarz. Tag ist warmes Papier. Auto folgt der Quelle unten.",
+      'set.ap.source': 'Auto folgt', "set.ap.source.d": "Sonnenzeiten des Wetters, Zeitplan oder das Hell-/Dunkeldesign des Geräts verwenden.",
       'set.ap.schedule': 'Zeitplan', 'set.ap.system': 'System',
       'set.ap.dayStart': 'Tag beginnt', 'set.ap.nightStart': 'Nacht beginnt',
       'set.ap.stepEarlier': '{what}: 15 Minuten früher', 'set.ap.stepLater': '{what}: 15 Minuten später',
@@ -501,17 +542,17 @@
       'set.wx.err.lon': 'Längengrad muss eine Zahl von −180 bis 180 sein.',
       'set.wx.noApi': '<strong>Diese Bridge kann noch keinen Wetterort empfangen.</strong> Der Ort wird hier gespeichert und exportiert. Um Wetter zu aktivieren, trage Breitengrad, Längengrad und Stadt in die Bridge-Konfiguration auf deinem Computer ein.',
       'set.wx.cleared': 'Wetterort gelöscht',
-      'set.wx.how': 'Tipp: Stadt auf einer Karte suchen, Koordinaten kopieren und runden. Die Bridge holt die Vorhersage; diese Seite kontaktiert selbst keinen Wetterdienst.',
+      "set.wx.how": "Stadt suchen, Ergebnis wählen und speichern. Ungefähre Koordinaten reichen. Kein API-Schlüssel nötig.",
 
-      'set.cal.lede': 'Die Termine zeigen kommende Ereignisse aus deinem Proton Calendar.',
+      "set.cal.lede": "Agenda aus Google, Apple/iCloud, Proton, Outlook oder einem anderen ICS-Feed. Nur lesbar.",
       'set.cal.status': 'Bridge-Status',
       'set.cal.st.on': 'Verbunden · {n} kommende Termine',
       'set.cal.st.off': 'Nicht verbunden',
       'set.cal.st.na': 'Ohne TV-Bridge nicht verfügbar',
-      'set.cal.warn': '<strong>Füge deinen Kalenderlink nie in dieses Dashboard ein.</strong> Ein Proton-Freigabelink gewährt Lesezugriff auf deinen Kalender. Er gehört in die private Konfiguration der Bridge, die diese Seite nicht lesen kann.',
-      'set.cal.s1': 'Öffne in Proton Calendar im Web die Kalendereinstellungen und erstelle einen Freigabelink („Mit allen teilen“, volle Ansicht oder nur belegt).',
-      'set.cal.s2': 'Trage den Link auf dem Computer, der deinen Fernseher verwaltet, in die private Bridge-Konfiguration ein – nicht in eine Datei, die du veröffentlichst oder synchronisierst.',
-      'set.cal.s3': 'Starte die Bridge neu oder lade sie neu. Innerhalb einer Minute zeigt die Terminliste hier deine Termine.',
+      "set.cal.warn": "<strong>Abonnement-Links gewähren Lesezugriff.</strong> Nur im privaten Computer-Editor eintragen; sie erscheinen nie hier oder im Export.",
+      "set.cal.s1": "Kalender-Abonnement-Link kopieren: geheime iCal-Adresse von Google, öffentlicher iCloud-Kalender, Proton-Freigabe, Outlook-Veröffentlichung oder anderer ICS-Feed.",
+      "set.cal.s2": "Nur im privaten Computer-Editor einfügen. HTTPS- und webcal-Links werden unterstützt.",
+      "set.cal.s3": "Speichern. Die Agenda erscheint innerhalb einer Minute, danach wird der Feed alle 15 Minuten geprüft.",
       'set.cal.editor': 'Bridge-Editor öffnen',
       'set.cal.noEditor': 'Diese Bridge hat keinen Editor auf dem Bildschirm; nutze die Schritte oben am Computer.',
 
@@ -665,7 +706,7 @@
       if (!isObj(th)) bad('theme');
       else {
         if ('mode' in th) { if (['auto', 'day', 'night'].indexOf(th.mode) >= 0) out.theme.mode = th.mode; else bad('theme.mode'); }
-        if ('autoSource' in th) { if (['schedule', 'system'].indexOf(th.autoSource) >= 0) out.theme.autoSource = th.autoSource; else bad('theme.autoSource'); }
+        if ('autoSource' in th) { if (['schedule', 'system', 'sun'].indexOf(th.autoSource) >= 0) out.theme.autoSource = th.autoSource; else bad('theme.autoSource'); }
         var ds = 'dayStart' in th ? parseHM(th.dayStart) : parseHM(out.theme.dayStart);
         var ns = 'nightStart' in th ? parseHM(th.nightStart) : parseHM(out.theme.nightStart);
         if (ds === null) { bad('theme.dayStart'); ds = parseHM(out.theme.dayStart); }
@@ -828,11 +869,15 @@
     var tmp = document.createElement('div');
     add(tmp, nodes);
     if (tmp.innerHTML === container.innerHTML) return false;
+    var oldRail = container.querySelector('.cards');
+    var railScroll = oldRail ? oldRail.scrollLeft : 0;
     var active = document.activeElement;
     var fid = active && container.contains(active) ? active.getAttribute('data-fid') : null;
     var alt = active && container.contains(active) ? active.getAttribute('data-fid-alt') : null;
     container.textContent = '';
     while (tmp.firstChild) container.appendChild(tmp.firstChild);
+    var newRail = container.querySelector('.cards');
+    if (newRail) newRail.scrollLeft = railScroll;
     if (fid) { restoringFocus = true; try { restoreFocus(fid, alt, container); } finally { restoringFocus = false; } }
     return true;
   }
@@ -967,12 +1012,12 @@
     }, 110);
   }
   function refreshAtmo() {
+    if (document.hidden || prefs.style !== 'ambient' || prefs.motion === 'reduced' || (mqReduce && mqReduce.matches)) { setAtmo(null,50); return; }
     var el = document.activeElement;
     if (el && el.classList && el.classList.contains('card') && !ui.settingsOpen) {
       var r = el.getBoundingClientRect();
       var x = (r.left + r.width / 2) / Math.max(1, window.innerWidth) * 100;
       var g = el.getAttribute(resolveTheme() === 'day' ? 'data-glow-d' : 'data-glow-n');
-      atmo.key = null;
       setAtmo(g, x);
     } else setAtmo(null, 50);
   }
@@ -1108,7 +1153,8 @@
       },
       capabilities: { configureWeather: kind === 'sample' },
       launch: ok, setSleepTimer: ok, screenOff: ok, openLgHome: ok, openSettings: ok,
-      configureWeather: kind === 'sample' ? ok : undefined
+      configureWeather: kind === 'sample' ? ok : undefined,
+      searchWeather: kind === 'sample' ? function(){return later(100).then(function(){return {places:[{label:'Sample City',region:'Sample Region, Sample Country',latitude:10,longitude:20},{label:'Sample Town',region:'Sample Region, Sample Country',latitude:11,longitude:21},{label:'Sample Place',region:'Sample Region, Sample Country',latitude:12,longitude:22},{label:'Sample Village',region:'Sample Region, Sample Country',latitude:13,longitude:23}]};});} : undefined
     };
   }
 
@@ -1152,7 +1198,13 @@
         panelHours: finite(raw.health.panelHours),
         webos: str(raw.health.webos),
         temperature: finite(raw.health.temperature),
+        idleReleaseSupported: raw.health.idleReleaseSupported === true,
+        lowMemoryMode: raw.health.lowMemoryMode === true,
         memoryUsedPercent: finite(raw.health.memoryUsedPercent),
+        memoryAvailableMB: finite(raw.health.memoryAvailableMB),
+        memoryTotalMB: finite(raw.health.memoryTotalMB),
+        memoryCachedMB: finite(raw.health.memoryCachedMB),
+        swapUsedMB: finite(raw.health.swapUsedMB),
         uptimeSeconds: finite(raw.health.uptimeSeconds),
         model: str(raw.health.model) ? clip(str(raw.health.model), 40) : null,
         firmware: str(raw.health.firmware) ? clip(str(raw.health.firmware), 40) : null
@@ -1178,6 +1230,7 @@
         temperature: finite(raw.weather.temperature),
         condition: str(raw.weather.condition) ? clip(str(raw.weather.condition), 32) : null,
         city: str(raw.weather.city) ? clip(str(raw.weather.city), 32) : null,
+        solar: (list(raw.weather.solar, 8) || []).map(function(d) { return {start:finite(d.start),end:finite(d.end),sunrise:finite(d.sunrise),sunset:finite(d.sunset)}; }),
         error: !!raw.weather.error,
         updatedAt: stamp(raw.weather.updatedAt)
       } : null,
@@ -1339,6 +1392,10 @@
   function resolveTheme(now) {
     var m = prefs.theme.mode;
     if (m === 'day' || m === 'night') return m;
+    if (prefs.theme.autoSource === 'sun' && window.OwnTVSolar) {
+      var solarTheme = OwnTVSolar.theme(state.data && state.data.weather, +(now || new Date()));
+      if (solarTheme) return solarTheme;
+    }
     if (prefs.theme.autoSource === 'system') {
       if (mqLight && mqLight.matches) return 'day';
       if (mqDark && mqDark.matches) return 'night';
@@ -1349,6 +1406,10 @@
     var shown = resolveTheme(now);
     var name = t('theme.' + shown);
     if (prefs.theme.mode !== 'auto') return t('theme.cap.manual', { theme: name });
+    if (prefs.theme.autoSource === 'sun') {
+      var solarDay = window.OwnTVSolar && OwnTVSolar.period(state.data && state.data.weather, +(now || new Date()));
+      return solarDay ? t('theme.cap.sun', { sunrise:fmtTime(new Date(solarDay.sunrise)), sunset:fmtTime(new Date(solarDay.sunset)) }) : t('theme.cap.sunFallback');
+    }
     if (prefs.theme.autoSource === 'system' && mqDark && (mqDark.matches || (mqLight && mqLight.matches))) return t('theme.cap.system', { theme: name });
     return shown === 'day' ? t('theme.cap.schedule.day', { time: prefs.theme.nightStart }) : t('theme.cap.schedule.night', { time: prefs.theme.dayStart });
   }
@@ -1546,6 +1607,7 @@
   function wWeather(now) {
     var wx = state.data && state.data.weather;
     var label = t('sec.weather');
+    var solarDay = window.OwnTVSolar && OwnTVSolar.period(wx, +(now || new Date()));
     var hasLocal = prefs.weather.latitude !== null;
     if (!state.data || Bridge.mode === 'none') return naGlance('weather', 'cloud', label, 'open-settings', 'weather');
     if (wx && wx.configured) {
@@ -1557,7 +1619,7 @@
       return glance('weather', { icon: wxIcon(wx.condition, now), label: label,
         value: [h('span', { class: 'w__big' }, fmtNum(wx.temperature, 0) + '°'), wx.condition ? h('span', { class: 'w__cond' }, wx.condition) : null],
         sub: place || null,
-        more: wx.updatedAt ? h('p', null, t('wx.updated', { time: fmtTime(new Date(wx.updatedAt)) })) : null,
+        more: [wx.updatedAt ? h('p', null, t('wx.updated', { time: fmtTime(new Date(wx.updatedAt)) })) : null, solarDay ? h('p', {class:'w__meta'}, t('theme.cap.sun', {sunrise:fmtTime(new Date(solarDay.sunrise)),sunset:fmtTime(new Date(solarDay.sunset))})) : null],
         action: 'open-settings', arg: 'weather' });
     }
     if (hasLocal) {
@@ -1649,19 +1711,31 @@
     return glance('sleep', { icon: 'timer', label: label, value: value, sub: sub, tone: tone, body: chips, more: more });
   }
 
-  function healthDetails(H, pv) {
+  function healthDetails(H, pv, peek) {
     function row(k, v) { return h('div', { class: 'kv' }, h('dt', null, k), h('dd', null, v === null || v === undefined ? na() : v)); }
     var badges = [];
     if (pv && pv.trackingOff !== null) badges.push(h('span', { class: 'badge ' + (pv.trackingOff ? 'badge--ok' : 'badge--warn') }, icon(pv.trackingOff ? 'check' : 'alert'), t(pv.trackingOff ? 'p.trackingOff' : 'p.trackingOn')));
     if (pv && pv.adBlocking !== null) badges.push(h('span', { class: 'badge ' + (pv.adBlocking ? 'badge--ok' : 'badge--warn') }, icon(pv.adBlocking ? 'shield' : 'alert'), t(pv.adBlocking ? 'p.adsOn' : 'p.adsOff')));
-    return [h('dl', { class: 'kvs' },
-      row(t('h.panelHours'), H.panelHours === null || H.panelHours === undefined ? null : fmtNum(H.panelHours, 1) + ' h'),
-      row(t('h.uptime'), H.uptimeSeconds === null || H.uptimeSeconds === undefined ? null : fmtUptime(H.uptimeSeconds)),
-      row(t('h.model'), H.model),
-      row(t('h.fw'), H.firmware),
-      row(t('h.privacy'), pv && pv.summary ? pv.summary : null)),
-      badges.length ? h('div', { class: 'badges' }, badges) : null];
+    function metric(label, value) { return h('div', {class:'health-stat'}, h('dt',null,label), h('dd',null,value == null ? na() : value)); }
+    if (peek) return [h('div',{class:'health-peek'},
+      h('div',{class:'health-heading'},h('span',null,H.model ? H.model.split('.')[0] : t('sec.health')),h('span',{class:'health-system'},H.webos ? 'webOS ' + H.webos : ''),h('div',{class:'badges'},badges)),
+      h('dl',{class:'health-stats'},
+        metric(t('h.panelHours'),H.panelHours == null ? null : fmtNum(H.panelHours,1) + ' h'),
+        metric(t('h.uptime'),H.uptimeSeconds == null ? null : fmtUptime(H.uptimeSeconds)),
+        metric(t('h.available'),H.memoryAvailableMB == null ? null : fmtNum(H.memoryAvailableMB,0) + ' MiB'),
+        metric(t('h.fw'),H.firmware))),h('p',{class:'w__hint'},t('glance.ok'))];
+    return [h('div', {class:'health-heading'}, h('span',null,H.model ? H.model.split('.')[0] : t('sec.health')), h('span',{class:'health-system'},H.webos ? 'webOS ' + H.webos : '')),
+      h('dl', {class:'health-stats'},
+        metric(t('h.panelHours'),H.panelHours == null ? null : fmtNum(H.panelHours,1) + ' h'),
+        metric(t('h.uptime'),H.uptimeSeconds == null ? null : fmtUptime(H.uptimeSeconds))),
+      h('dl', {class:'kvs health-readings'},
+        row(t('h.fw'),H.firmware),
+        row(t('h.available'),H.memoryAvailableMB == null ? null : fmtNum(H.memoryAvailableMB,0) + ' / ' + fmtNum(H.memoryTotalMB,0) + ' MiB'),
+        row(t('h.cached'),H.memoryCachedMB == null ? null : fmtNum(H.memoryCachedMB,0) + ' MiB')),
+      h('p',{class:'health-note'},t('h.memoryNote')),
+      badges.length ? h('div', {class:'badges'},badges) : null];
   }
+
   function wHealth() {
     var label = t('sec.health');
     var hl = state.data && state.data.health, pv = state.data && state.data.privacy;
@@ -1671,10 +1745,11 @@
       && (!pv || (pv.summary === null && pv.trackingOff === null && pv.adBlocking === null));
     if (allMissing) return glance('health', { icon: 'chip', label: label, value: na(t('na')), tone: 'na', more: h('p', null, t('na.field')), action: 'open-settings', arg: 'about' });
     var temp = H.temperature, mem = H.memoryUsedPercent;
-    var value = temp !== null && temp !== undefined ? [h('span', { class: 'w__big' }, fmtNum(temp, 0)), h('span', { class: 'w__unit' }, '°C')] : na(t('h.temp') + ': ' + t('na'));
-    var sub = typeof mem === 'number' ? h('span', { class: 'memline' }, h('span', null, fmtNum(mem, 0) + ' % ' + t('h.memShort')),
-      h('span', { class: 'meter' + (mem >= 85 ? ' meter--warn' : ''), 'aria-hidden': 'true' }, h('i', { style: { width: Math.max(0, Math.min(100, mem)) + '%' } }))) : null;
-    return glance('health', { icon: 'chip', label: label, value: value, sub: sub, more: healthDetails(H, pv), action: 'open-settings', arg: 'about' });
+    var readings = h('span',{class:'health-face'},
+      h('span',{class:'health-face__reading'}, h('span',{class:'health-face__label'},t('h.temp')), h('span',null,temp == null ? na() : [h('strong',null,fmtNum(temp,0)),h('small',null,' °C') ])),
+      h('span',{class:'health-face__reading'}, h('span',{class:'health-face__label'},t('h.memShort')), h('span',null,mem == null ? na() : [h('strong',null,fmtNum(mem,0)),h('small',null,' %') ])));
+    var sub = H.memoryAvailableMB == null ? null : t('h.availableShort',{n:fmtNum(H.memoryAvailableMB,0)});
+    return glance('health', {icon:'chip',label:label,value:readings,sub:sub,more:healthDetails(H,pv,true),okHint:false,action:'open-settings',arg:'about'});
   }
 
   function wSmartHome() {
@@ -1812,7 +1887,7 @@
   }
   function secAppearance() {
     var auto = prefs.theme.mode === 'auto';
-    var sched = auto && prefs.theme.autoSource === 'schedule';
+    var sched = auto && prefs.theme.autoSource !== 'system';
     return [head('appearance'),
       h('h2', { class: 'subhead' }, t('set.ap.style')),
       h('div', { class: 'styles', role: 'group', 'aria-label': t('set.ap.style') }, STYLES.map(function (k) {
@@ -1827,6 +1902,7 @@
         { action: 'theme-mode', arg: 'night', label: t('theme.night'), icon: 'moon' },
         { action: 'theme-mode', arg: 'auto', label: t('theme.auto'), icon: 'auto' }], prefs.theme.mode, 'tm')),
       srow(t('set.ap.source'), t('set.ap.source.d'), seg(t('set.ap.source'), [
+        { action: 'theme-source', arg: 'sun', label: t('set.ap.sun') },
         { action: 'theme-source', arg: 'schedule', label: t('set.ap.schedule') },
         { action: 'theme-source', arg: 'system', label: t('set.ap.system') }], prefs.theme.autoSource, 'ts', !auto), !auto),
       srow(t('set.ap.dayStart'), null, stepper('dayStart', t('set.ap.dayStart')), !sched),
@@ -1849,6 +1925,7 @@
         h('input', { id: 'f-name', type: 'text', maxlength: '24', autocomplete: 'off', spellcheck: 'false', 'data-input': 'name', 'data-fid': 'f-name', placeholder: t('set.lang.namePh'), 'aria-label': t('set.lang.name'), value: prefs.name })))];
   }
 
+  var wxSearch = {busy:false,places:[],error:null}, wxCoordinates=false;
   function secWeather() {
     var wx = state.data && state.data.weather;
     var d = ui.wxDraft || { label: prefs.weather.label, lat: prefs.weather.latitude === null ? '' : String(prefs.weather.latitude), lon: prefs.weather.longitude === null ? '' : String(prefs.weather.longitude) };
@@ -1863,10 +1940,15 @@
     var errs = Object.keys(e).filter(function (k) { return e[k]; });
     return [head('weather'),
       srow(t('set.wx.status'), null, h('span', { class: 'note' }, h('span', { class: 'dot ' + (wx && wx.configured ? 'dot--ok' : '') , style: { display: 'inline-block', 'margin-right': '0.6rem' } }), status)),
-      h('div', { class: 'fields' },
-        field('f-wx-label', 'label', t('set.wx.label'), null, 'text', 40),
-        field('f-wx-lat', 'lat', t('set.wx.lat'), t('set.wx.latHint'), 'decimal', 10),
-        field('f-wx-lon', 'lon', t('set.wx.lon'), t('set.wx.lonHint'), 'decimal', 11)),
+      h('div', {class:'weather-search'},
+        field('f-wx-label','label',t('set.wx.city'),null,'text',40),
+        h('button',{class:'btn f',type:'button','data-action':'wx-search','data-fid':'wx-search',disabled:wxSearch.busy||!Bridge.has('searchWeather')},t(wxSearch.busy?'set.wx.searching':'set.wx.search'))),
+      wxSearch.error ? h('p',{class:'note',role:'status'},wxSearch.error) : null,
+      wxSearch.places.length ? h('div',{class:'weather-results'},wxSearch.places.map(function(p,i){return h('button',{class:'place f',type:'button','data-action':'wx-place','data-arg':String(i),'data-fid':'wx-place:'+i},h('strong',null,p.label),h('span',null,p.region));})) : null,
+      h('div',{class:'formrow weather-coordinates-toggle'},h('button',{class:'btn f',type:'button','data-action':'wx-coordinates','data-fid':'wx-coordinates','aria-expanded':String(wxCoordinates)},t('set.wx.coordinates')),h('span',{class:'note'}, d.lat && d.lon ? d.lat + '°, ' + d.lon + '°' : t('set.wx.pick'))),
+      wxCoordinates ? h('div', {class:'weather-coordinates'},
+        field('f-wx-lat','lat',t('set.wx.lat'),null,'decimal',10),
+        field('f-wx-lon','lon',t('set.wx.lon'),null,'decimal',11)) : null,
       errs.length ? h('div', { class: 'callout callout--bad', role: 'alert' }, icon('alert'), h('div', null, errs.map(function (k) { return h('p', { id: 'f-wx-' + k + '-err' }, e[k]); }))) : null,
       h('div', { class: 'formrow' },
         h('button', { class: 'btn btn--primary f', type: 'button', 'data-action': 'wx-save', 'data-fid': 'wx-save' }, icon('check'), t('set.wx.save')),
@@ -1922,13 +2004,13 @@
       h('div', { class: 'formrow' }, h('button', { class: 'btn btn--danger f', type: 'button', 'data-action': 'prefs-reset', 'data-fid': 'bk-reset' }, icon('refresh'), ui.resetArmed ? t('set.bk.resetConfirm') : t('set.bk.reset')))];
   }
 
-  var firmwareReply = null, firmwareBusy = false;
+  var firmwareReply = null, firmwareBusy = false, releasingIdle = false, memoryBusy=false;
   function secAbout() {
     var methods = ['getState', 'launch', 'setSleepTimer', 'screenOff', 'openLgHome', 'openSettings', 'savePreferences', 'configureWeather', 'openEditor', 'checkFirmware'];
     var modeText = Bridge.mode === 'live' ? t('set.ab.mode.live') + (Bridge.via === 'editor' ? ' · ' + t('set.ab.via.editor') : ' · ' + t('set.ab.via.tv')) : Bridge.mode === 'preview' ? t('set.ab.mode.preview') + ' (' + previewKind + ')' : t('set.ab.mode.none');
     var H = state.data && state.data.health || {}, pv = state.data && state.data.privacy;
     var fwText = firmwareReply ? t(firmwareReply.catalogueReachable === false ? 'fw.offline' : firmwareReply.eligible ? 'fw.report' : 'fw.unknown') : t('fw.description');
-    return [head('about'), healthDetails(H, pv), h('div', {class:'formrow'}, h('button', {class:'btn f',type:'button','data-action':'check-firmware','data-fid':'fw-check',disabled:firmwareBusy || !Bridge.has('checkFirmware')}, firmwareBusy ? t('fw.checking') : t('fw.check'))), h('p',{class:'note',role:'status'},fwText),
+    return [head('about'), healthDetails(H, pv), H.idleReleaseSupported ? srow(t('h.memoryMode'),t('h.memoryModeNote'),sw('memory-mode','mode',H.lowMemoryMode,t('h.memoryMode'),'memory-mode')) : null, H.idleReleaseSupported ? h('div',{class:'formrow'}, h('button',{class:'btn f',type:'button','data-action':'release-idle','data-fid':'release-idle',disabled:releasingIdle || !Bridge.has('releaseIdleApps')},t(releasingIdle ? 'h.releasing' : 'h.release'))) : null, H.idleReleaseSupported ? h('p',{class:'note'},t('h.releaseNote')) : null, h('div', {class:'formrow'}, h('button', {class:'btn f',type:'button','data-action':'check-firmware','data-fid':'fw-check',disabled:firmwareBusy || !Bridge.has('checkFirmware')}, firmwareBusy ? t('fw.checking') : t('fw.check'))), h('p',{class:'note',role:'status'},fwText),
       srow(t('set.ab.mode'), null, h('span', { class: 'note' }, modeText)),
       srow(t('set.ab.last'), null, h('span', { class: 'note' }, state.lastOk ? fmtTime(new Date(state.lastOk)) + ' · ' + fmtDate(new Date(state.lastOk), { day: 'numeric', month: 'short' }) : t('set.ab.never'))),
       h('h2', { class: 'subhead' }, t('set.ab.caps')),
@@ -1957,7 +2039,7 @@
         h('div', { class: 'sheet__navfoot' },
           h('button', { class: 'btn f', type: 'button', 'data-action': 'close-settings', 'data-fid': 'nav:close' }, icon('back'), t('set.close')),
           h('p', { class: 'keyhint' }, t('set.keys')))),
-      h('div', { class: 'sheet__body', id: 'sheet-body' }, body)
+      h('div', { class: 'sheet__body', id: 'sheet-body', 'data-section':ui.section }, body)
     ]);
   }
 
@@ -2062,6 +2144,13 @@
     var cur = document.activeElement;
     var items = focusables(scope);
     if (!cur || cur === document.body || !scope.contains(cur)) { focusDefault(); return; }
+    // Rail order and scroll positions must not depend on animated rectangles.
+    if (cur.classList.contains('card') && (dir === 'left' || dir === 'right')) {
+      var railCards = Array.prototype.slice.call(cur.closest('.cards').querySelectorAll('.card'));
+      var nextCard = railCards[railCards.indexOf(cur) + (dir === 'right' ? 1 : -1)];
+      if (nextCard) nextCard.focus({preventScroll:true});
+      return;
+    }
     var a = cur.getBoundingClientRect();
     var best = null, bestScore = Infinity;
     items.forEach(function (el) {
@@ -2077,11 +2166,25 @@
       if (remembered && isFocusable(remembered) && (group.getAttribute('data-nav-memory') === 'settings-nav' || dir === 'up' || dir === 'down')) best = remembered;
     }
     best.focus({ preventScroll: true });
-    best.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    if (!best.classList.contains('card')) best.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+  function revealCard(card) {
+    var rail = card.closest('.cards');
+    if (!rail || getComputedStyle(rail).overflowX !== 'auto') return;
+    var item = card.parentElement;
+    var gutter = parseFloat(getComputedStyle(rail).paddingLeft);
+    // Offset coordinates describe the layout before focus zoom and include no scroll.
+    var left = item.getBoundingClientRect().left - rail.getBoundingClientRect().left + rail.scrollLeft;
+    var right = left + item.offsetWidth;
+    var target = rail.scrollLeft;
+    if (left - gutter < target) target = left - gutter;
+    else if (right + gutter > target + rail.clientWidth) target = right + gutter - rail.clientWidth;
+    rail.scrollLeft = Math.max(0, Math.min(rail.scrollWidth - rail.clientWidth, target));
   }
   document.addEventListener('focusin', function (e) {
     var g = e.target.closest && e.target.closest('[data-nav-memory]');
     if (g) g.__last = e.target;
+    if (e.target.classList && e.target.classList.contains('card')) revealCard(e.target);
     if (!ui.settingsOpen) refreshAtmo();
     // Settings sections follow focus, like the TV's own menus.
     if (ui.settingsOpen && !restoringFocus && e.target.getAttribute && e.target.getAttribute('data-action') === 'section') {
@@ -2110,7 +2213,7 @@
       return;
     }
     var first = document.querySelector('#apps .card');
-    if (first && document.activeElement !== first) { first.focus({ preventScroll: true }); first.scrollIntoView({ block: 'nearest', inline: 'nearest' }); return; }
+    if (first && document.activeElement !== first) { first.focus({ preventScroll: true }); return; }
     toast(t('toast.backHome'), 'info');
   }
 
@@ -2162,6 +2265,15 @@
 
   function handle(action, arg, el) {
     switch (action) {
+      case 'memory-mode':
+        if(memoryBusy)break;memoryBusy=true;
+        act('setMemoryMode',[!(state.data&&state.data.health&&state.data.health.lowMemoryMode)],t('h.memoryMode'),function(r){if(state.data&&state.data.health)state.data.health.lowMemoryMode=r.enabled===true;renderSettings();}).then(function(){memoryBusy=false;refresh(true);});
+        break;
+      case 'release-idle':
+        if (releasingIdle) break;
+        releasingIdle = true; renderSettings();
+        act('releaseIdleApps', [], t('h.release'), function(reply) { toast(t('h.released',{n:(reply.closed||[]).length}), 'ok'); }).then(function() { releasingIdle=false; refresh(true); renderSettings(); });
+        break;
       case 'check-firmware':
         if (firmwareBusy) break;
         firmwareBusy = true; renderSettings();
@@ -2258,11 +2370,22 @@
       }
       case 'apps-reset': prefs.apps = defaultPrefs().apps; commit(); break;
 
+      case 'wx-coordinates': wxCoordinates=!wxCoordinates; renderSettings(); break;
+      case 'wx-search':
+        if(wxSearch.busy)break;wxSearch.busy=true;wxSearch.error=null;wxSearch.places=[];renderSettings();
+        Bridge.call('searchWeather',[(ui.wxDraft&&ui.wxDraft.label)||'']).then(function(r){wxSearch.places=Array.isArray(r.places)?r.places.slice(0,4):[];if(!wxSearch.places.length)wxSearch.error=t('set.wx.noResults');},function(e){wxSearch.error=errText(e);}).then(function(){wxSearch.busy=false;renderSettings();var place=findFid('wx-place:0');if(place)place.focus({preventScroll:true});});
+        break;
+      case 'wx-place':
+        var place=wxSearch.places[Number(arg)];if(!place)break;
+        ui.wxDraft={label:place.label,lat:String(round2(place.latitude)),lon:String(round2(place.longitude))};ui.wxErrors={};wxSearch.places=[];renderSettings();var save=findFid('wx-save');if(save)save.focus({preventScroll:true});
+        break;
       case 'wx-save': saveWeather(); break;
       case 'wx-clear':
         prefs.weather = { label: '', latitude: null, longitude: null };
         ui.wxDraft = null; ui.wxErrors = {};
         commit();
+        if(Bridge.has('clearWeather'))act('clearWeather',[],t('set.wx.clear')).then(function(){refresh(false);});
+        wxSearch.places=[];wxSearch.error=null;
         toast(t('set.wx.cleared'), 'ok');
         break;
       case 'open-editor':
@@ -2384,7 +2507,7 @@
     if (lat === null || lat < -90 || lat > 90) errs.lat = t('set.wx.err.lat');
     if (lon === null || lon < -180 || lon > 180) errs.lon = t('set.wx.err.lon');
     ui.wxErrors = errs;
-    if (Object.keys(errs).length) { renderSettings(); var f = findFid('f-wx-' + Object.keys(errs)[0]); if (f) f.focus(); return; }
+    if (Object.keys(errs).length) { if(errs.lat||errs.lon)wxCoordinates=true; renderSettings(); var f = findFid('f-wx-' + Object.keys(errs)[0]); if (f) f.focus(); return; }
     prefs.weather = { label: label, latitude: round2(lat), longitude: round2(lon) };
     prefs.widgets.weather = true;
     ui.wxDraft = { label: label, lat: String(prefs.weather.latitude), lon: String(prefs.weather.longitude) };
@@ -2470,11 +2593,11 @@
   }
   setInterval(function () {
     var m = prefs.idleDimMinutes;
-    if (!idle && m && Date.now() - lastInput > m * 60000) setIdle(true);
+    if (!document.hidden && !idle && m && Date.now() - lastInput > m * 60000) setIdle(true);
   }, 10000);
 
   function pixelShift() {
-    if (!prefs.pixelShift) return;
+    if (document.hidden || !prefs.pixelShift) return;
     var x = Math.round(Math.random() * 6 - 3), y = Math.round(Math.random() * 6 - 3);
     $('stage').style.transform = 'translate(' + x + 'px,' + y + 'px)';
   }
@@ -2484,10 +2607,10 @@
      Clock tick (minute-aligned), visibility, bridge arrival
      ====================================================================== */
   function tick() {
-    applyTheme();
-    renderTop();
-    renderShelf();
-    if (idle) placeIdleClock();
+    if (!document.hidden) {
+      applyTheme(); renderTop(); renderShelf();
+      if (idle) placeIdleClock();
+    }
     var now = new Date();
     setTimeout(tick, (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50);
   }
