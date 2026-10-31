@@ -1,0 +1,15 @@
+{
+  "id": "io.github.noelhuibers.owntv",
+  "version": "0.1.0",
+  "vendor": "Own TV contributors",
+  "type": "web",
+  "main": "index.html",
+  "title": "Own TV",
+  "appDescription": "Your apps, agenda and TV status. A private, personal dashboard.",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "iconColor": "#101719",
+  "bgColor": "#000000",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true
+}

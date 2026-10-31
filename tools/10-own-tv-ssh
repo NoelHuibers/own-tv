@@ -1,0 +1,24 @@
+#!/bin/sh
+# Enforce key-only SSH after Homebrew Channel starts its bundled Dropbear.
+# Removing this hook returns SSH management to Homebrew Channel.
+SERVICE=/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service
+KEYS=/home/root/.ssh/authorized_keys
+FLAG=/var/luna/preferences/webosbrew_sshd_enabled
+[ -e "$FLAG" ] && [ -s "$KEYS" ] || exit 0
+pid=$(cat /var/run/dropbear.pid 2>/dev/null)
+case "$pid" in
+  ''|*[!0-9]*) ;;
+  *)
+    # Only stop the listener we expect; established SSH children survive.
+    exe=$(readlink "/proc/$pid/exe" 2>/dev/null)
+    if [ "$exe" = "$SERVICE/bin/dropbear" ]; then
+      kill "$pid" || exit 1
+      count=0
+      while kill -0 "$pid" 2>/dev/null && [ "$count" -lt 5 ]; do
+        sleep 1
+        count=$((count + 1))
+      done
+    fi
+    ;;
+esac
+exec "$SERVICE/bin/dropbear" -R -s

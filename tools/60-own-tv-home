@@ -1,0 +1,13 @@
+#!/bin/sh
+# Bring up the standalone Home router without blocking webOS startup.
+FILE=/var/lib/own-tv/home-route.cjs
+PID=/var/run/own-tv-home.pid
+[ -f "$FILE" ] && [ -x /usr/bin/node ] || exit 0
+if [ -f "$PID" ]; then
+ p=$(cat "$PID")
+ case "$p" in ''|*[!0-9]*) ;; *)
+  if kill -0 "$p" 2>/dev/null && tr '\000' ' ' < "/proc/$p/cmdline" | grep -qF "$FILE"; then exit 0; fi
+ esac
+fi
+nohup /usr/bin/node "$FILE" </dev/null >/var/lib/own-tv/home-route.log 2>&1 &
+exit 0

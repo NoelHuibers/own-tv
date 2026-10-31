@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="night" data-style="ambient" data-motion="full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#000000">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: file:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>Own TV</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Atmosphere: two crossfading light layers tinted by the focused app (Ambient style). -->
+  <div class="atmo" id="atmo" aria-hidden="true">
+    <div class="atmo__l" id="atmoA"></div>
+    <div class="atmo__l" id="atmoB"></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="banner" id="banner" hidden></div>
+    <header class="top" id="top"></header>
+    <main class="main" id="main">
+      <section class="apps" id="apps" aria-label="Apps"></section>
+      <div class="shelf" id="shelf" role="region" aria-label="At a glance"></div>
+    </main>
+  </div>
+
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden></div>
+
+  <div class="idle" id="idle" aria-hidden="true">
+    <div class="idle__clock" id="idleClock"></div>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <noscript>
+    <p class="noscript">Own TV needs JavaScript to run.</p>
+  </noscript>
+
+  <!-- Original line icons (24×24, stroke = currentColor). No external assets. -->
+  <svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></symbol>
+      <symbol id="i-tvset" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12.5" rx="2"/><path d="M8.5 21h7M12 17v4"/><path d="M7 8.5h3.5M13.5 8.5H17M7 13h6.5M16.5 13H17"/><circle cx="12" cy="8.5" r="1.4"/><circle cx="15" cy="13" r="1.4"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17.5 7H20M4 17h3M11.5 17H20"/><circle cx="15.2" cy="7" r="2.2"/><circle cx="9.2" cy="17" r="2.2"/></symbol>
+      <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3.5v8"/><path d="M7.2 6.6a7.5 7.5 0 1 0 9.6 0"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></symbol>
+      <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-input" viewBox="0 0 24 24"><path d="M4 8h16v5.5L17 17H7l-3-3.5z"/><path d="M8 11.5h8"/></symbol>
+      <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4.2l2.6 1.6M9.5 2.8h5"/></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10.2a3.8 3.8 0 0 0 .4-7.6 5.8 5.8 0 0 0-11.1 1.4A3.1 3.1 0 0 0 7 18.5z"/></symbol>
+      <symbol id="i-rain" viewBox="0 0 24 24"><path d="M7 14.5h10.2a3.6 3.6 0 0 0 .4-7.2 5.6 5.6 0 0 0-10.8 1.3A3 3 0 0 0 7 14.5z"/><path d="M8.5 17.5l-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5"/></symbol>
+      <symbol id="i-snow" viewBox="0 0 24 24"><path d="M7 13.5h10.2a3.6 3.6 0 0 0 .4-7.2 5.6 5.6 0 0 0-10.8 1.3A3 3 0 0 0 7 13.5z"/><path d="M8 17.5h.01M12 19h.01M16 17.5h.01M10 21h.01M14 21h.01" stroke-width="2.6"/></symbol>
+      <symbol id="i-fog" viewBox="0 0 24 24"><path d="M4 9h16M6 13h12M4 17h16M8 21h8"/></symbol>
+      <symbol id="i-storm" viewBox="0 0 24 24"><path d="M7 13.5h10.2a3.6 3.6 0 0 0 .4-7.2 5.6 5.6 0 0 0-10.8 1.3A3 3 0 0 0 7 13.5z"/><path d="M12.5 15l-2 3.5h3l-2 3.5"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+      <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.6"/><path d="M9.5 3v3M14.5 3v3M9.5 18v3M14.5 18v3M3 9.5h3M3 14.5h3M18 9.5h3M18 14.5h3"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5.2c0 4.3 2.9 7.8 7 9.8 4.1-2 7-5.5 7-9.8V6z"/></symbol>
+      <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v4.5M15 3v4.5M6.5 7.5h11v3.2a5.5 5.5 0 0 1-11 0z"/><path d="M12 16.2V21"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 4.8 5-4.8M5 20h14"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.5V4.5M7 9l5-4.8L17 9M5 20h14"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.5 5.2 3.5 8.5s-1.1 6.1-3.5 8.5c-2.4-2.4-3.5-5.2-3.5-8.5s1.1-6.1 3.5-8.5z"/></symbol>
+      <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.2 0 1.8-.7 1.8-1.6 0-1.2-1-1.5-1-2.6 0-1 .8-1.8 1.8-1.8h2.1a3.8 3.8 0 0 0 3.8-3.8c0-4-3.8-7.2-8.5-7.2z"/><circle cx="7.8" cy="11" r="1.1"/><circle cx="10.5" cy="7.4" r="1.1"/><circle cx="15" cy="7.8" r="1.1"/></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2"/></symbol>
+      <symbol id="i-widgets" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="6" rx="1.2"/><rect x="3.5" y="13" width="7.5" height="7" rx="1.2"/><rect x="13" y="13" width="7.5" height="7" rx="1.2"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1" stroke-width="2.2"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 16.8v.1" stroke-width="2.2"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></symbol>
+      <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="4.5" rx="1"/><path d="M5 9v10.5h14V9M10 13h4"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+      <symbol id="i-recent" viewBox="0 0 24 24"><path d="M4.6 12a7.4 7.4 0 1 0 2.2-5.3"/><path d="M4.5 4.5v3.9h3.9"/><path d="M12 8.2V12l2.8 1.8"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M10 6 4 12l6 6M4.5 12H20"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- Parent-owned hardware bridge (exposes window.OwnTVBridge). Absent in plain browsers. -->
+  <script src="bridge.js"></script>
+  <script src="order.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

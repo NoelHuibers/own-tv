@@ -1,0 +1,16 @@
+#!/bin/sh
+# Add only this app's access to Homebrew Channel's command service on webOS 11.
+# Install/update regenerates the file, so the deployer runs this after install.
+APP=io.github.noelhuibers.owntv
+FILE=/var/luna-service2-dev/client-permissions.d/$APP.app.json
+[ -f "$FILE" ] || exit 0
+/usr/bin/node - "$FILE" "$APP" <<'JS'
+const fs=require('fs');
+const file=process.argv[2],id=process.argv[3];
+const data=JSON.parse(fs.readFileSync(file,'utf8'));
+const group='org.webosbrew.hbchannel.service.group';
+const key=Array.isArray(data[id])?id:Array.isArray(data[id+'-*'])?id+'-*':null;
+if(!key)throw Error('Unexpected permission format; refusing to change it');
+if(!data[key].includes(group)){data[key].push(group);fs.writeFileSync(file,JSON.stringify(data));}
+JS
+[ "$?" -eq 0 ] && /usr/sbin/ls-control scan-services >/dev/null 2>&1

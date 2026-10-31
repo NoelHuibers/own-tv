@@ -1,0 +1,15 @@
+{
+  "name": "own-tv",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A private, personal dashboard for rooted LG webOS TVs",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs && python3 -m unittest discover -s tests -p \"*security.py\"",
+    "preview": "python3 -m http.server 5173 --bind 127.0.0.1 --directory app",
+    "package": "python3 tools/package.py"
+  },
+  "dependencies": {
+    "ical.js": "2.2.1"
+  }
+}

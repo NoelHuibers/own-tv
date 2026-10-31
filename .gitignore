@@ -1,0 +1,17 @@
+.private/
+*.key
+.env*
+node_modules/
+dist/
+__pycache__/
+*.ipk
+device.local.json
+config.local.json
+
+*.tar.gz
+*.ics
+*.pem
+*.log
+artifacts/
+
+*.local.json

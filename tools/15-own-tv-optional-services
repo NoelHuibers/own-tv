@@ -1,0 +1,13 @@
+#!/bin/sh
+# This opt-in hook disables LG's voice assistant. Remove it to restore voice.
+# Never disables video, audio, OLED maintenance or standby services.
+[ -x /bin/systemctl ] || exit 0
+[ -x /usr/sbin/voiceconductor ] || exit 0
+(
+ mkdir -p /run/systemd/transient
+ ln -sf /dev/null /run/systemd/transient/voiceconductor.service
+ /bin/systemctl daemon-reload
+ /bin/systemctl stop --no-block voiceconductor.service
+ killall voiceconductor 2>/dev/null || true
+) </dev/null >/dev/null 2>&1 &
+exit 0
