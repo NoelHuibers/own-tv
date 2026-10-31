@@ -25,6 +25,9 @@
  function check(r){if(r.ok===false)throw new Error(r.error||'TV operation failed');return r;}
  window.OwnTVBridge={
   getState:function(){return call('state');},
+  getWeather:function(force){return call('weatherDetails',force===true);},
+  getRadar:function(){return call('radar');},
+  openWeatherSource:function(source){return call('weatherSource',source);},
   checkFirmware:function(){return call('firmwareCheck');},
   releaseIdleApps:function(){return call('releaseIdleApps');},
   setMemoryMode:function(enabled){return call('memoryMode',enabled);},

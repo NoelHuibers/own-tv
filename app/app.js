@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '0.1.1';
+  var VERSION = '0.2.0';
   var STORE_KEY = 'owntv.preferences.v1';
   var EXPORT_KIND = 'owntv.preferences';
   var POLL_MS = 60 * 1000;
@@ -1151,6 +1151,7 @@
         if (kind === 'error') return fail(400);
         return later(300).then(function () { return JSON.parse(JSON.stringify(kind === 'empty' ? empty : sample)); });
       },
+      getWeather:function(){return later(200).then(function(){if(kind==='error')throw Error('Preview unavailable');if(kind==='empty')return {configured:false};var start=Math.floor(Date.now()/3600000)*3600000;return {configured:true,city:'Sample City',temperature:9,feelsLike:7,code:3,wind:12,humidity:78,isDay:true,updatedAt:Date.now(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,location:{latitude:48,longitude:11},hourly:Array.from({length:24},function(_,i){return {time:start+i*3600000,temperature:9+Math.round(Math.sin(i/5)*4),code:i<6?61:3,probability:i<6?60+i*4:20,precipitation:i<6?.4:0,wind:12};}),daily:Array.from({length:7},function(_,i){return {time:Date.now()+i*86400000,code:i%3===0?61:3,high:12+i%3,low:4+i%3,probability:30+i*5,precipitation:i%3,wind:15,sunrise:Date.now(),sunset:Date.now()+36000000};})};});},
       capabilities: { configureWeather: kind === 'sample' },
       launch: ok, setSleepTimer: ok, screenOff: ok, openLgHome: ok, openSettings: ok,
       configureWeather: kind === 'sample' ? ok : undefined,
@@ -1261,7 +1262,7 @@
   var pollTimer = null;
   function schedulePoll() {
     clearTimeout(pollTimer);
-    if (document.hidden) return;
+    if (document.hidden || weatherView) return;
     pollTimer = setTimeout(function () { refresh(false).then(schedulePoll); }, POLL_MS);
   }
   function refresh(manual) {
@@ -1421,6 +1422,7 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', th === 'day' ? DAY_BG : NIGHT_BG);
     if (changed && $('atmoA')) refreshAtmo();
+    if(changed && weatherView)weatherView.themeChanged();
     var reduce = prefs.motion === 'reduced' || (mqReduce && mqReduce.matches);
     root.setAttribute('data-motion', reduce ? 'reduced' : 'full');
     root.setAttribute('lang', prefs.language);
@@ -1609,18 +1611,18 @@
     var label = t('sec.weather');
     var solarDay = window.OwnTVSolar && OwnTVSolar.period(wx, +(now || new Date()));
     var hasLocal = prefs.weather.latitude !== null;
-    if (!state.data || Bridge.mode === 'none') return naGlance('weather', 'cloud', label, 'open-settings', 'weather');
+    if (!state.data || Bridge.mode === 'none') return naGlance('weather', 'cloud', label, hasLocal&&Bridge.has('getWeather')?'open-weather':'open-settings', 'weather');
     if (wx && wx.configured) {
       var place = wx.city || prefs.weather.label;
       if (wx.temperature === null || wx.error) {
         return glance('weather', { icon: 'cloud', label: label, value: na(t('wx.na')), sub: place, tone: 'na',
-          more: h('p', null, t('wx.error')), action: 'open-settings', arg: 'weather' });
+          more: h('p', null, t('wx.error')), okHint:false, action: 'open-weather' });
       }
       return glance('weather', { icon: wxIcon(wx.condition, now), label: label,
         value: [h('span', { class: 'w__big' }, fmtNum(wx.temperature, 0) + '°'), wx.condition ? h('span', { class: 'w__cond' }, wx.condition) : null],
         sub: place || null,
         more: [wx.updatedAt ? h('p', null, t('wx.updated', { time: fmtTime(new Date(wx.updatedAt)) })) : null, solarDay ? h('p', {class:'w__meta'}, t('theme.cap.sun', {sunrise:fmtTime(new Date(solarDay.sunrise)),sunset:fmtTime(new Date(solarDay.sunset))})) : null],
-        action: 'open-settings', arg: 'weather' });
+        okHint:false, action: 'open-weather' });
     }
     if (hasLocal) {
       return glance('weather', { icon: 'pin', label: label, value: t('wx.pending.title'), tone: 'setup',
@@ -2043,7 +2045,19 @@
     ]);
   }
 
+  var weatherView=null;
+  function openWeather(){
+    if(weatherView||!window.OwnTVWeather)return;
+    if(ui.settingsOpen)closeSettings();
+    clearTimeout(pollTimer);$('stage').inert=true;$('stage').setAttribute('aria-hidden','true');
+    weatherView=OwnTVWeather.create({host:$('weather-app'),language:prefs.language,city:(state.data&&state.data.weather&&state.data.weather.city)||prefs.weather.label,preview:Bridge.mode==='preview',onTV:IS_WEBOS,call:function(m,args){return Bridge.call(m,args);},onInput:noteInput,onClose:closeWeather,onSetup:function(){closeWeather();openSettings('weather');}});
+  }
+  function closeWeather(){
+    if(!weatherView)return;weatherView.close();weatherView=null;$('stage').inert=false;$('stage').removeAttribute('aria-hidden');
+    var tile=findFid('w:weather');if(tile)tile.focus({preventScroll:true});refresh(false).then(schedulePoll);
+  }
   function openSettings(section) {
+    if(weatherView)closeWeather();
     if (!ui.settingsOpen) {
       var a = document.activeElement;
       ui.returnFid = a && a.getAttribute ? a.getAttribute('data-fid') : null;
@@ -2101,8 +2115,8 @@
   /* ======================================================================
      Spatial navigation (D-pad), Back, colour keys, Magic Remote pointer
      ====================================================================== */
-  var FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled])';
-  function activeScope() { return ui.settingsOpen ? $('sheet') : $('stage'); }
+  var FOCUSABLE = '[tabindex="0"], button:not([disabled]), a[href], input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled])';
+  function activeScope() { return weatherView ? $('weather-app') : ui.settingsOpen ? $('sheet') : $('stage'); }
   function isFocusable(el) {
     if (!el || !el.matches || !el.matches(FOCUSABLE)) return false;
     if (el.closest('[hidden]') || el.closest('[inert]')) return false;
@@ -2205,6 +2219,7 @@
   }
 
   function goBack() {
+    if(weatherView){closeWeather();return;}
     if (ui.settingsOpen) {
       var a = document.activeElement;
       var body = $('sheet-body');
@@ -2221,6 +2236,7 @@
   document.addEventListener('keydown', function (e) {
     if (wakeFromIdle()) { e.preventDefault(); e.stopPropagation(); return; }
     var k = e.keyCode;
+    if(weatherView && weatherView.key(e)){e.preventDefault();return;}
     var dir = KEY_DIR[k];
     var tgt = e.target;
     var typing = isTextField(tgt);
@@ -2307,6 +2323,7 @@
         else refresh(true);
         break;
       case 'theme-cycle': cycleTheme(); break;
+      case 'open-weather': openWeather();break;
       case 'open-settings': openSettings(arg || null); break;
       case 'close-settings': closeSettings(); break;
       case 'section':
@@ -2581,7 +2598,7 @@
   function setIdle(on) {
     idle = on;
     root.classList.toggle('is-idle', on);
-    if (on) placeIdleClock();
+    if (on) {placeIdleClock();if(weatherView)weatherView.suspend();}
   }
   function placeIdleClock() {
     var c = $('idleClock');
@@ -2608,7 +2625,7 @@
      ====================================================================== */
   function tick() {
     if (!document.hidden) {
-      applyTheme(); renderTop(); renderShelf();
+      applyTheme(); if(!weatherView){renderTop(); renderShelf();}
       if (idle) placeIdleClock();
     }
     var now = new Date();

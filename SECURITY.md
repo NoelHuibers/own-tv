@@ -1,7 +1,9 @@
 # Security and privacy
 
 Own TV has no cloud account, analytics, remote fonts or advertisement SDK.
-Weather and calendar make external connections only after explicit setup.
+Weather and calendar make external connections only after explicit setup. Opening
+Rain radar additionally loads images from tilecache.rainviewer.com; the map
+geography and all scripts are bundled locally.
 
 - Install requires an already-rooted TV and verified key-based SSH. Use a
   dedicated key; verify it after reboot before disabling Telnet. Homebrew

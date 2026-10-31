@@ -8,7 +8,7 @@ const https = require('node:https');
 const path = require('node:path');
 const {expandCalendar, validateIntegrations} = require('./integrations.cjs');
 const firmware=require('./firmware.cjs');
-const {normalizeWeather,searchUrl}=require('./weather.cjs');
+const {normalizeWeather,searchUrl,forecastUrl,normalizeRadar}=require('./weather.cjs');
 const {parseMemory,releaseIdleApps,applyPreload}=require('./performance.cjs');
 const {spawn}=require('node:child_process');
 const {fetchCalendar}=require('./calendar-feed.cjs');
@@ -60,16 +60,24 @@ function getText(url, maxBytes=2000000) {
   });req.on('timeout',()=>req.destroy(new Error('Provider timed out')));req.on('error',()=>reject(new Error('Provider connection failed')));
  });
 }
+async function weatherData(details=false,force=false){
+ const w=read('integrations.json',{}).weather;
+ if(!w)return {configured:false};
+ const cached=read('weather-cache.json',null);
+ try{
+  const d=!force&&cached?.schema===3&&Date.now()-cached.at<30*60*1000?cached:{schema:3,at:Date.now(),data:JSON.parse(await getText(forecastUrl(w)))};
+  const result=normalizeWeather(d.data,w.label,d.at,details);
+  if(d!==cached)write('weather-cache.json',d);
+  if(details)result.location={latitude:w.latitude,longitude:w.longitude};
+  return result;
+ }catch{
+  if(cached?.schema===3){const result=normalizeWeather(cached.data,w.label,cached.at,details);if(details)result.location={latitude:w.latitude,longitude:w.longitude};return {...result,error:true};}
+  return {configured:true,city:w.label,error:true,...(details?{location:{latitude:w.latitude,longitude:w.longitude}}:{})};
+ }
+}
 async function integrations() {
  const cfg=read('integrations.json',{}), result={calendar:{configured:false,events:[]},weather:{configured:false},smartHome:{configured:false,devices:[]}};
- if(cfg.weather){
-  const w=cfg.weather;result.weather={configured:true,city:w.label};
-  try {
-   const cached=read('weather-cache.json',null);
-   const d=cached&&Date.now()-cached.at<30*60*1000&&cached.data?.daily?cached: {at:Date.now(),data:JSON.parse(await getText('https://api.open-meteo.com/v1/forecast?latitude='+w.latitude+'&longitude='+w.longitude+'&current=temperature_2m,weather_code&daily=sunrise,sunset&timezone=auto&timeformat=unixtime&forecast_days=4'))};
-   if(d!==cached)write('weather-cache.json',d);result.weather=normalizeWeather(d.data,w.label,d.at);
-  }catch{result.weather.error='Weather unavailable';}
- }
+ result.weather=await weatherData(false);
  if(cfg.calendar){
   result.calendar.configured=true;
   try {
@@ -113,6 +121,9 @@ function luna(uri,body){return new Promise((resolve,reject)=>{
 });}
 async function main(action, argument) {
  if(action==='state')return state();
+ if(action==='weatherSource'){if(!['forecast','radar'].includes(argument))throw Error('Unknown weather source');return luna('com.webos.applicationManager/launch',{id:'com.webos.app.browser',params:{target:argument==='forecast'?'https://open-meteo.com/':'https://www.rainviewer.com/'}});}
+ if(action==='weatherDetails')return weatherData(true,argument===true);
+ if(action==='radar'){const w=read('integrations.json',{}).weather;if(!w)throw Error('Configure weather first.');const cached=read('radar-cache.json',null);let data;if(cached&&Date.now()-cached.at<300000)data=cached.data;else{data=normalizeRadar(JSON.parse(await getText('https://api.rainviewer.com/public/weather-maps.json',65536)));write('radar-cache.json',{at:Date.now(),data});}return {...data,location:{latitude:w.latitude,longitude:w.longitude},city:w.label};}
  if(action==='weatherSearch'){const r=JSON.parse(await getText(searchUrl(argument),65536));return {ok:true,places:(r.results||[]).map(p=>({label:String(p.name).slice(0,40),region:[p.admin1,p.country].filter(Boolean).join(', '),latitude:p.latitude,longitude:p.longitude}))};}
  if(action==='memoryMode'){
   if(typeof argument!=='boolean')throw Error('Invalid memory mode');

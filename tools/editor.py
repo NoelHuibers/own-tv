@@ -9,7 +9,7 @@ import shlex
 import subprocess
 from urllib.parse import urlsplit
 ROOT=Path(__file__).resolve().parents[1]
-ACTIONS={'state','launch','sleep','screenOff','lgHome','settings','preferences','configure','weather','firmwareCheck','releaseIdleApps','memoryMode','weatherSearch'}
+ACTIONS={'state','launch','sleep','screenOff','lgHome','settings','preferences','configure','weather','firmwareCheck','releaseIdleApps','memoryMode','weatherSearch','weatherDetails','radar','weatherSource'}
 
 def invoke(ssh_config,host,action,value=None):
     if action not in ACTIONS:raise ValueError('Unknown action')

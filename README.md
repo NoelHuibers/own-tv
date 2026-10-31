@@ -13,6 +13,7 @@ that every launcher feature works there. This project does not root your TV.
 - Remote-friendly home dashboard and customization controls.
 - Ambient, Quiet and Compact styles; day/night appearance with sunrise/sunset, schedule or system switching.
 - Recent-first app favorites (or manual order), optional HDMI inputs, panel hours, health readings and sleep timer.
+- Integrated weather app: current conditions, 24-hour and seven-day forecasts, and observed rain radar.
 - Optional Open-Meteo weather and a read-only calendar agenda (Google, Apple/iCloud, Proton, Outlook, ICS).
 - Private computer editor over SSH; integration credentials never enter Git.
 - Default Home routing that catches direct LG Home launches, private backups and explicit rollback.
@@ -77,6 +78,7 @@ Keep personal profiles, backups and integration files outside this repository.
 - [Security model](SECURITY.md)
 - [Recovery and uninstall](docs/RECOVERY.md)
 - [Private integrations](docs/INTEGRATIONS.md)
+- [Weather and radar](docs/WEATHER.md)
 - [LG data deletion](docs/LG-DATA-DELETION.md)
 - [Firmware compatibility policy](docs/FIRMWARE.md)
 
@@ -97,4 +99,6 @@ MIT for Own TV. Calendar parsing uses [ical.js](https://github.com/kewisch/ical.
 is an independent project with its own license; it is not vendored here.
 SlopBro and Homebrew Channel enable the underlying root access. Hearth's
 webOS 11 permission documentation informed the scoped permission repair tool.
+Weather uses Open-Meteo; radar imagery uses RainViewer for personal/educational use.
+Bundled geography is Natural Earth public-domain data. See [weather sources](docs/WEATHER.md).
 UI design implementation was delegated to Claude Opus 5.5 at High effort.
