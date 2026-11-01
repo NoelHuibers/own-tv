@@ -13,6 +13,17 @@ geography and all scripts are bundled locally.
 - The native helper starts no network listener and offers fixed actions only.
   It calls Glasshouse over TV loopback. Configure Glasshouse to bind to
   `127.0.0.1`, set a unique token, and leave experimental features off.
+- Direct Home uses a fixed-action bridge in the Home router on
+  `127.0.0.1:18766`, never on a LAN interface. It requires a private 256-bit
+  bearer token, checks Host and Origin, limits request bodies and does not offer
+  a shell or arbitrary URL action. Its runtime token stays under
+  `/var/lib/own-tv/home-system`, outside packages and appearance exports.
+  No extra Homebrew permission is granted to LG's stock Home.
+- Direct Home temporarily bind-mounts Own TV over LG Home's app directory.
+  LG's original files remain underneath; it does not write firmware partitions
+  or LG Home layouts. A foreground heartbeat restores LG's identity if the view
+  fails; an independent supervisor restores it after a router crash. Watchdog
+  recovery is suspended in standby and while other apps are foreground.
 - The computer editor binds only to `127.0.0.1`. It uses verified SSH, validates
   Host and Origin and requires a custom request header. Do not reverse-proxy it
   to your LAN or the internet. Untrusted programs on your computer remain able

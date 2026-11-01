@@ -3,9 +3,11 @@
  'use strict';
  var onTV=typeof window.PalmServiceBridge==='function';
  var editor=window.OWN_TV_EDITOR===true;
- if(!onTV&&!editor)return;
+ var home=window.OWN_TV_HOME_BRIDGE;
+ if(!onTV&&!editor&&!home)return;
  if(!onTV&&/[?&]preview=(sample|empty|error)(?:&|$)/.test(location.search))return;
  function call(action,value){
+  if(home)return fetch('http://127.0.0.1:'+home.port+'/action',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+home.token},body:JSON.stringify({action:action,value:value})}).then(function(r){return r.json();}).then(check);
   if(editor&&!onTV)return fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json','X-OwnTV-Editor':'1'},body:JSON.stringify({action:action,value:value})}).then(function(r){return r.json();}).then(check);
   if(!onTV)return Promise.reject(new Error('Preview only. Connect a TV through the local editor.'));
   return new Promise(function(resolve,reject){
@@ -33,6 +35,8 @@
   checkFirmware:function(){return call('firmwareCheck');},
   releaseIdleApps:function(){return call('releaseIdleApps');},
   setMemoryMode:function(enabled){return call('memoryMode',enabled);},
+  setDirectHome:function(enabled){return call('directHome',enabled);},
+  homeHeartbeat:function(value){return call('homeHeartbeat',value);},
   searchWeather:function(query){return call('weatherSearch',query);},
   launch:function(id){if(typeof id!=='string'||!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$/.test(id))return Promise.reject(new Error('Invalid app'));return call('launch',id);},
   setSleepTimer:function(minutes){return call('sleep',Number(minutes));},
@@ -45,6 +49,6 @@
   openEditor:function(){if(editor){location.href='/integrations';return Promise.resolve({ok:true});}return Promise.reject(new Error('On your computer, run: python3 tools/editor.py --ssh-config PATH --host YOUR_TV_ALIAS'));}
  };
  window.OwnTVBridge.capabilities={configureWeather:true,openEditor:editor};
- window.OwnTVBridge.onTV=onTV;
+ window.OwnTVBridge.onTV=onTV||!!home;
  window.OwnTVBridge.editor=editor;
 })();

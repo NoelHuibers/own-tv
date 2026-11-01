@@ -9,10 +9,29 @@ SSH or remove Homebrew Channel while troubleshooting the launcher.
 python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room home-restore
 ```
 
-This stops the Own TV foreground router and removes its boot hook, then restores
+This first releases Direct Home, restores LG's original app identity and video
+preload policies, then stops the supervised router and removes its boot hook. It restores
 the saved Home app mapping (LG Home if no mapping was set before). It leaves other default apps as
 they are. Then open LG Home and uninstall Own TV through Homebrew Channel.
 Remove `/var/lib/webosbrew/init.d/40-own-tv-permission` if no longer needed.
+
+To disable Direct Home while retaining ordinary Own TV foreground routing:
+
+```sh
+python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room home-direct-disable
+```
+
+If the computer tool is unavailable, run this in the TV's root SSH shell before
+stopping the router or removing its files:
+
+```sh
+node /var/lib/own-tv/helper.cjs directHome ZmFsc2U=
+```
+
+It unmounts the replacement, has SAM reread LG's manifest and releases any
+temporary system-app block. The original app files remain underneath the
+mount. Do not delete `home-system` while it is mounted. Reboot clears the mount;
+disable the saved mode and boot hook first if you want it to stay off.
 
 If no saved mapping is available, inspect the current `defaultApps` setting
 first. Do not replace the entire object with a guessed value. The normal LG

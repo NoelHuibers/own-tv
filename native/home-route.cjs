@@ -3,11 +3,14 @@
 const fs=require('node:fs');
 const {spawn}=require('node:child_process');
 const {applyPreload,releaseIdleApps}=require('./performance.cjs');
+const {createHomeReplacement}=require('./home-replacement.cjs');
+const {createHomeApi,PORT}=require('./home-api.cjs');
 const ROOT='/var/lib/own-tv';
 const APP='io.github.noelhuibers.owntv';
 const STOCK=new Set(['com.webos.app.home','com.webos.app.fullhome']);
 const PID='/var/run/own-tv-home.pid';
 if(process.argv.includes('--stop')){
+ try{const pid=Number(fs.readFileSync('/var/run/own-tv-home-supervisor.pid','utf8'));if(Number.isInteger(pid)&&pid>1&&fs.readFileSync('/proc/'+pid+'/cmdline','utf8').includes('/var/lib/webosbrew/init.d/60-own-tv-home'))process.kill(pid,'SIGTERM');}catch{}
  try{const pid=Number(fs.readFileSync(PID,'utf8'));if(Number.isInteger(pid)&&pid>1&&fs.readFileSync('/proc/'+pid+'/cmdline','utf8').includes('/var/lib/own-tv/home-route.cjs'))process.kill(pid,'SIGTERM');}catch{}
  process.exit(0);
 }
@@ -20,9 +23,29 @@ function once(uri,body){return new Promise((resolve,reject)=>{
  child.on('error',e=>{clearTimeout(timer);reject(e);});
  child.on('close',()=>{clearTimeout(timer);try{const d=JSON.parse(raw.trim());if(d.returnValue===false)reject(Error(d.errorText||'Luna refused'));else resolve(d);}catch(e){reject(e);}});
 });}
+const replacement=createHomeReplacement({luna:once});
+const api=createHomeApi({token:replacement.token,main:require('./helper.cjs').main,heartbeat:replacement.heartbeat});
+api.on('error',()=>console.error('Own TV private Home bridge could not start. Direct Home will refuse activation.'));
+api.listen(PORT,'127.0.0.1');
+let directBusy=false;
+async function directForeground(appId){
+ const s=replacement.status();if(!s.enabled)return false;
+ if(s.phase==='preparing'&&Date.now()-s.startedAt>60000&&!directBusy){await replacement.disable('Home activation was interrupted.');return false;}
+ if(s.phase==='preparing'||directBusy||replacement.mounted())return true;
+ if(s.phase==='escaped'){
+  if(STOCK.has(appId)&&stockAllowed())return true;
+  if(!observedStock&&Date.now()<Number((()=>{try{return fs.readFileSync(ROOT+'/allow-stock-until','utf8');}catch{return 0;}})()))return true;
+ }
+ directBusy=true;
+ try{try{fs.unlinkSync(ROOT+'/allow-stock-until');}catch{}observedStock=false;const power=await once('com.webos.service.tvpower/power/getPowerState',{});await replacement.enable({launch:power.state==='Active'&&(STOCK.has(appId)||appId===APP)});}
+ catch(e){console.error('Direct Home could not start; foreground routing retained.');}
+ finally{directBusy=false;}
+ return replacement.status().enabled;
+}
 function stockAllowed(){try{const allowed=Number(fs.readFileSync(ROOT+'/allow-stock-until','utf8'))>Date.now();if(allowed)observedStock=true;return allowed;}catch{return false;}}
 async function foreground(appId){
  if(!appId)return;
+ if(await directForeground(appId))return;
  if(!STOCK.has(appId)){
   if(appId!==APP||observedStock){try{fs.unlinkSync(ROOT+'/allow-stock-until');}catch{}observedStock=false;}
   if(appId===APP)failures=0;
@@ -48,10 +71,11 @@ async function enforceMemory(appId){
  memoryBusy=true;try{await applyPreload(once,settings);
   const current=JSON.parse(fs.readFileSync(ROOT+'/performance.json','utf8'));
   if(current.enabled!==true){await applyPreload(once,settings,true);return;}
-  if(!memoryPrepared&&appId===APP){await releaseIdleApps(once);memoryPrepared=true;}
+  if(!memoryPrepared&&(appId===APP||appId==='com.webos.app.home'&&replacement.mounted())){await releaseIdleApps(once);memoryPrepared=true;}
  }catch{}finally{memoryBusy=false;}
 }
-async function check(){if(stopping)return;try{const d=await once('com.webos.applicationManager/getForegroundAppInfo',{});await foreground(d.appId);enforceMemory(d.appId);}catch{}}
+async function check(){if(stopping)return;try{const d=await once('com.webos.applicationManager/getForegroundAppInfo',{});await foreground(d.appId);if(replacement.mounted()&&!directBusy){const power=await once('com.webos.service.tvpower/power/getPowerState',{});await replacement.guard(d.appId,power.state);}enforceMemory(d.appId);}catch{}}
 function stop(){stopping=true;if(subscription)subscription.kill();try{if(fs.readFileSync(PID,'utf8').trim()===String(process.pid))fs.unlinkSync(PID);}catch{}process.exit(0);}
 process.on('SIGTERM',stop);process.on('SIGINT',stop);
 subscribe();check();setInterval(check,10000);
+setInterval(()=>{if(replacement.status().enabled&&replacement.status().phase==='active'&&replacement.mounted())replacement.stopFlutter();},2000);

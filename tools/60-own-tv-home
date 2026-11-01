@@ -1,13 +1,31 @@
 #!/bin/sh
-# Bring up the standalone Home router without blocking webOS startup.
+# Independently supervise the router; restore LG Home after an unexpected exit.
 FILE=/var/lib/own-tv/home-route.cjs
-PID=/var/run/own-tv-home.pid
+PID=/var/run/own-tv-home-supervisor.pid
 [ -f "$FILE" ] && [ -x /usr/bin/node ] || exit 0
+if [ "$1" = --supervise ]; then
+ echo $$ > "$PID"
+ child=
+ trap 'trap - TERM INT; [ -z "$child" ] || kill "$child" 2>/dev/null; rm -f "$PID"; exit 0' TERM INT
+ crashes=0
+ while :; do
+  /usr/bin/node "$FILE" &
+  child=$!
+  wait "$child"
+  child=
+  /usr/bin/node /var/lib/own-tv/helper.cjs directHome ZmFsc2U= >/dev/null 2>&1
+  crashes=$((crashes + 1))
+  [ "$crashes" -lt 3 ] || break
+  sleep 2
+ done
+ rm -f "$PID"
+ exit 0
+fi
 if [ -f "$PID" ]; then
  p=$(cat "$PID")
  case "$p" in ''|*[!0-9]*) ;; *)
-  if kill -0 "$p" 2>/dev/null && tr '\000' ' ' < "/proc/$p/cmdline" | grep -qF "$FILE"; then exit 0; fi
+  if kill -0 "$p" 2>/dev/null && tr '\000' ' ' < "/proc/$p/cmdline" | grep -qF '60-own-tv-home'; then exit 0; fi
  esac
 fi
-nohup /usr/bin/node "$FILE" </dev/null >/var/lib/own-tv/home-route.log 2>&1 &
+nohup /bin/sh /var/lib/webosbrew/init.d/60-own-tv-home --supervise </dev/null >/var/lib/own-tv/home-route.log 2>&1 &
 exit 0

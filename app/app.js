@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '0.2.2';
+  var VERSION = '0.2.3';
   var STORE_KEY = 'owntv.preferences.v1';
   var EXPORT_KIND = 'owntv.preferences';
   var POLL_MS = 60 * 1000;
@@ -1204,6 +1204,8 @@
         temperature: finite(raw.health.temperature),
         idleReleaseSupported: raw.health.idleReleaseSupported === true,
         lowMemoryMode: raw.health.lowMemoryMode === true,
+        directHome:raw.health.directHome===true,
+        directHomeFailure:str(raw.health.directHomeFailure),
         memoryUsedPercent: finite(raw.health.memoryUsedPercent),
         memoryAvailableMB: finite(raw.health.memoryAvailableMB),
         memoryTotalMB: finite(raw.health.memoryTotalMB),
@@ -1540,7 +1542,7 @@
   function recentRank(app) {
     var rec = state.data && state.data.recent;
     if (!rec || app.onTv !== true) return -1;
-    var list = rec.filter(function (r) { return r.id !== OWN_APP_ID; });
+    var list = rec.filter(function (r) { return r.id !== OWN_APP_ID && r.id !== 'com.webos.app.home'; });
     for (var i = 0; i < list.length; i++) if (list[i].id === app.launchId) return i;
     return -1;
   }
@@ -1671,7 +1673,7 @@
     var list = state.data && state.data.recent;
     if (!list) return null;
     var apps = (state.data && state.data.apps) || [];
-    return list.filter(function (r) { return r.id !== OWN_APP_ID; }).slice(0, 3).map(function (r) {
+    return list.filter(function (r) { return r.id !== OWN_APP_ID && r.id !== 'com.webos.app.home'; }).slice(0, 3).map(function (r) {
       var match = null;
       CATALOG.forEach(function (c) { if (!match && (c.ids.indexOf(r.id) >= 0 || c.names.indexOf(norm(r.title)) >= 0)) match = c; });
       var src = apps.filter(function (a) { return a.id === r.id; })[0];
@@ -2074,7 +2076,7 @@
       h('div', { class: 'formrow' }, h('button', { class: 'btn btn--danger f', type: 'button', 'data-action': 'prefs-reset', 'data-fid': 'bk-reset' }, icon('refresh'), ui.resetArmed ? t('set.bk.resetConfirm') : t('set.bk.reset')))];
   }
 
-  var firmwareReply = null, firmwareBusy = false, releasingIdle = false, memoryBusy=false, aboutDetails=false;
+  var firmwareReply = null, firmwareBusy = false, releasingIdle = false, memoryBusy=false, directHomeBusy=false, aboutDetails=false;
   function secAbout() {
     var H=state.data&&state.data.health||{},pv=state.data&&state.data.privacy,cal=state.data&&state.data.calendar,wx=state.data&&state.data.weather;
     var count=cal&&cal.sources?cal.sources.filter(function(s){return s.enabled;}).length:0;
@@ -2090,7 +2092,7 @@
       srow(t('set.nav.weather'),null,h('span',{class:'note'},wx&&wx.configured?wx.city||calText('Enabled','Aktiv'):calText('Off','Aus'))),
       srow(t('set.nav.calendar'),null,h('span',{class:'note'},count+' '+calText('calendars enabled','Kalender aktiv'))),
       h('button',{class:'btn f',type:'button','data-action':'about-details','data-fid':'about-details','aria-expanded':String(aboutDetails)},calText('TV & system details','TV- und Systemdetails')),
-      aboutDetails?h('div',{class:'about-system'},healthDetails(H, pv), H.idleReleaseSupported ? srow(t('h.memoryMode'),t('h.memoryModeNote'),sw('memory-mode','mode',H.lowMemoryMode,t('h.memoryMode'),'memory-mode')) : null, H.idleReleaseSupported ? h('div',{class:'formrow'}, h('button',{class:'btn f',type:'button','data-action':'release-idle','data-fid':'release-idle',disabled:releasingIdle || !Bridge.has('releaseIdleApps')},t(releasingIdle ? 'h.releasing' : 'h.release'))) : null, H.idleReleaseSupported ? h('p',{class:'note'},t('h.releaseNote')) : null, h('div', {class:'formrow'}, h('button', {class:'btn f',type:'button','data-action':'check-firmware','data-fid':'fw-check',disabled:firmwareBusy || !Bridge.has('checkFirmware')}, firmwareBusy ? t('fw.checking') : t('fw.check'))), h('p',{class:'note',role:'status'},fwText),
+      aboutDetails?h('div',{class:'about-system'},healthDetails(H, pv),H.idleReleaseSupported?srow(calText('Direct Home','Direkter Startbildschirm'),calText('Open Own TV directly when apps close. Off restores foreground routing.','Öffnet Own TV direkt beim Schließen von Apps. Aus nutzt die bisherige Weiterleitung.'),sw('direct-home','mode',H.directHome,calText('Direct Home','Direkter Startbildschirm'),'direct-home')):null,H.directHomeFailure?h('p',{class:'note'},H.directHomeFailure):null, H.idleReleaseSupported ? srow(t('h.memoryMode'),t('h.memoryModeNote'),sw('memory-mode','mode',H.lowMemoryMode,t('h.memoryMode'),'memory-mode')) : null, H.idleReleaseSupported ? h('div',{class:'formrow'}, h('button',{class:'btn f',type:'button','data-action':'release-idle','data-fid':'release-idle',disabled:releasingIdle || !Bridge.has('releaseIdleApps')},t(releasingIdle ? 'h.releasing' : 'h.release'))) : null, H.idleReleaseSupported ? h('p',{class:'note'},t('h.releaseNote')) : null, h('div', {class:'formrow'}, h('button', {class:'btn f',type:'button','data-action':'check-firmware','data-fid':'fw-check',disabled:firmwareBusy || !Bridge.has('checkFirmware')}, firmwareBusy ? t('fw.checking') : t('fw.check'))), h('p',{class:'note',role:'status'},fwText),
         srow(t('set.ab.last'),null,h('span',{class:'note'},state.lastOk?fmtTime(new Date(state.lastOk)):t('set.ab.never'))),
         h('button',{class:'btn f',type:'button','data-action':'refresh','data-fid':'ab-refresh'},icon('refresh'),t('set.ab.refresh'))):null,
       h('h2',{class:'subhead'},t('set.ab.keys')),
@@ -2366,6 +2368,9 @@
         var publicCal=calCatalog&&calCatalog.calendars.filter(function(c){return c.id===arg;})[0];
         if(publicCal)changeCalendarSource({publicId:arg,enabled:!publicCal.selected});break;
       case 'about-details': aboutDetails=!aboutDetails;renderSettings();break;
+      case 'direct-home':
+        if(directHomeBusy)break;directHomeBusy=true;
+        act('setDirectHome',[!(state.data&&state.data.health&&state.data.health.directHome)],calText('Direct Home','Direkter Startbildschirm')).then(function(){directHomeBusy=false;refresh(false);});break;
       case 'memory-mode':
         if(memoryBusy)break;memoryBusy=true;
         act('setMemoryMode',[!(state.data&&state.data.health&&state.data.health.lowMemoryMode)],t('h.memoryMode'),function(r){if(state.data&&state.data.health)state.data.health.lowMemoryMode=r.enabled===true;renderSettings();}).then(function(){memoryBusy=false;refresh(true);});
@@ -2726,7 +2731,10 @@
     setTimeout(tick, (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50);
   }
 
+  function homeHeartbeat(){if(window.OWN_TV_SYSTEM_HOME&&!document.hidden&&Bridge.has('homeHeartbeat'))Bridge.call('homeHeartbeat',[{version:VERSION,rendered:!!$('stage'),connected:!!state.lastOk,apps:document.querySelectorAll('.card').length}]).catch(function(){});}
+  setInterval(homeHeartbeat,10000);
   document.addEventListener('visibilitychange', function () {
+    homeHeartbeat();
     if (document.hidden) { clearTimeout(pollTimer); return; }
     noteInput();
     refresh(false).then(schedulePoll);
@@ -2741,6 +2749,7 @@
     attachBridge();
     applyTheme();
     renderAll();
+    requestAnimationFrame(homeHeartbeat);
     focusDefault();
     var start = function () { refresh(false).then(schedulePoll); };
     if (Bridge.mode === 'live' && Bridge.impl.ready && typeof Bridge.impl.ready.then === 'function') {

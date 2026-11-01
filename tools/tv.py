@@ -52,7 +52,7 @@ class TV:
         # Explicit list: credentials, config files and unrelated node_modules
         # never enter the TV helper deployment or a public release package.
         with tarfile.open(fileobj=bundle,mode='w',format=tarfile.USTAR_FORMAT) as tar:
-            for name in ['helper.cjs','integrations.cjs','firmware.cjs','home-route.cjs','weather.cjs','performance.cjs','calendar-feed.cjs','calendar-agenda.cjs','calendar-settings.cjs','holiday-catalog.json']:tar.add(ROOT/'native'/name,arcname=name)
+            for name in ['helper.cjs','integrations.cjs','firmware.cjs','home-route.cjs','home-replacement.cjs','home-api.cjs','weather.cjs','performance.cjs','calendar-feed.cjs','calendar-agenda.cjs','calendar-settings.cjs','holiday-catalog.json']:tar.add(ROOT/'native'/name,arcname=name)
             tar.add(ROOT/'compatibility/firmware.json',arcname='compatibility/firmware.json')
             build=json.dumps({'version':json.loads((ROOT/'package.json').read_text())['version']}).encode();info=tarfile.TarInfo('build.json');info.size=len(build);info.mode=0o600;tar.addfile(info,io.BytesIO(build))
             dependency=ROOT/'node_modules/ical.js'
@@ -69,6 +69,13 @@ class TV:
         except (RuntimeError,subprocess.TimeoutExpired):meta={}
         safe={'otaid':meta.get('model_name'),'country':meta.get('country')}
         self.run('umask 077; cat > /var/lib/own-tv/device-capabilities.json',json.dumps(safe).encode())
+        router=self.run("/usr/bin/node -e \"process.stdout.write(String(require('fs').existsSync('/var/lib/webosbrew/init.d/60-own-tv-home')))\"").decode()=='true'
+        if router:
+            self.run('/usr/bin/node /var/lib/own-tv/home-route.cjs --stop')
+            self.run('cat > /var/lib/webosbrew/init.d/60-own-tv-home',(ROOT/'tools/60-own-tv-home').read_bytes())
+            self.run('chmod 755 /var/lib/webosbrew/init.d/60-own-tv-home')
+            self.run('sh /var/lib/webosbrew/init.d/60-own-tv-home')
+            self.helper('homeRefresh')
         print('Installed Own TV. Root permission repaired. Existing Home routing preserved.')
     def home(self,restore=False):
         before=self.luna('com.webos.settingsservice/getSystemSettings',{'category':'general','keys':['defaultApps']})
@@ -78,8 +85,10 @@ class TV:
             for native_file in ['home-route.cjs','performance.cjs']:
                 self.run('cat > /var/lib/own-tv/'+native_file,(ROOT/'native'/native_file).read_bytes())
             self.run('test -f /var/lib/own-tv/home-before.json || cat > /var/lib/own-tv/home-before.json',json.dumps(current).encode())
-            current={**current,'home':APP}
+            direct=self.run("/usr/bin/node -e \"process.stdout.write(String(require('/var/lib/own-tv/home-replacement.cjs').createHomeReplacement().mounted()))\"").decode()=='true'
+            current={**current,'home':'com.webos.app.home' if direct else APP}
         else:
+            self.run('if [ -f /var/lib/own-tv/home-replacement.cjs ]; then /usr/bin/node /var/lib/own-tv/helper.cjs directHome ZmFsc2U=; fi')
             self.run('if [ -f /var/lib/own-tv/performance.json ]; then /usr/bin/node /var/lib/own-tv/helper.cjs memoryMode ZmFsc2U=; fi')
             saved=json.loads(self.run('cat /var/lib/own-tv/home-before.json'))
             # Restore only Home, preserve any other settings changed meanwhile.
@@ -94,7 +103,7 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--ssh-config',required=True);p.add_argument('--host',required=True)
     sub=p.add_subparsers(dest='action',required=True)
     backup=sub.add_parser('backup');backup.add_argument('--destination',required=True)
-    sub.add_parser('install');sub.add_parser('state');sub.add_parser('home-enable');sub.add_parser('home-restore');sub.add_parser('open')
+    sub.add_parser('install');sub.add_parser('state');sub.add_parser('home-enable');sub.add_parser('home-restore');sub.add_parser('home-direct-enable');sub.add_parser('home-direct-disable');sub.add_parser('open')
     configure=sub.add_parser('configure');configure.add_argument('--file',required=True)
     a=p.parse_args();tv=TV(a.ssh_config,a.host)
     if a.action=='backup':tv.backup(a.destination)
@@ -102,5 +111,7 @@ if __name__=='__main__':
     elif a.action=='state':print(json.dumps(tv.helper('state'),indent=2))
     elif a.action=='home-enable':tv.home()
     elif a.action=='home-restore':tv.home(True)
+    elif a.action=='home-direct-enable':print(tv.helper('directHome',True))
+    elif a.action=='home-direct-disable':print(tv.helper('directHome',False))
     elif a.action=='open':print(tv.luna('com.webos.applicationManager/launch',{'id':APP}))
     elif a.action=='configure':print(tv.helper('configure',json.loads(Path(a.file).read_text())))

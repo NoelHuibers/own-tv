@@ -1,6 +1,6 @@
 {
   "id": "io.github.noelhuibers.owntv",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "vendor": "Own TV contributors",
   "type": "web",
   "main": "index.html",

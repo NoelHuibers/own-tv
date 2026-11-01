@@ -14,6 +14,7 @@ const {spawn}=require('node:child_process');
 const {fetchCalendar}=require('./calendar-feed.cjs');
 const {collectAgenda}=require('./calendar-agenda.cjs');
 const {publicCatalog,changeCalendar}=require('./calendar-settings.cjs');
+const {createHomeReplacement}=require('./home-replacement.cjs');
 const ROOT = process.env.OWN_TV_DATA || '/var/lib/own-tv';
 function read(name, fallback) { try { return JSON.parse(fs.readFileSync(path.join(ROOT, name), 'utf8')); } catch { return fallback; } }
 function write(name, value) {
@@ -103,6 +104,7 @@ async function state() {
  if(health.memoryUsedPercent==null&&memory.total&&available!=null)health.memoryUsedPercent=Math.round((memory.total-available)*100/memory.total);
  try{Object.assign(health,parseMemory(fs.readFileSync('/proc/meminfo','utf8')));}catch{}
  health.lowMemoryMode=read('performance.json',{}).enabled===true;
+ const direct=createHomeReplacement({root:ROOT,luna});health.directHome=direct.status().enabled===true&&direct.mounted();health.directHomeFailure=direct.status().failure||null;
  health.idleReleaseSupported=String(health.model||'').split('.')[0]==='OLED65C51LA';
  const inputs=Object.entries(stats.inputs||{}).map(([key,title])=>({id:'com.webos.app.'+key,title,connected:undefined}));
  const catalog=hdmi.inputs||hdmi.ports||[];
@@ -117,6 +119,16 @@ function luna(uri,body){return new Promise((resolve,reject)=>{
 });}
 async function main(action, argument) {
  if(action==='state')return state();
+ if(action==='homeRefresh')return createHomeReplacement({root:ROOT,luna}).refresh();
+ if(action==='directHome'){
+  if(typeof argument!=='boolean')throw Error('Choose whether Direct Home is enabled.');
+  const direct=createHomeReplacement({root:ROOT,luna});
+  if(!argument)return direct.disable();
+  const stats=await gh('/api/stats');
+  if(String(stats.device?.model||'').split('.')[0]!=='OLED65C51LA'||stats.system?.firmware!=='43.21.77')throw Error('Direct Home has not been verified for this model and firmware.');
+  const foreground=await luna('com.webos.applicationManager/getForegroundAppInfo',{});
+  return direct.enable({launch:['com.webos.app.home','io.github.noelhuibers.owntv'].includes(foreground.appId)});
+ }
  if(action==='weatherSource'){if(!['forecast','radar'].includes(argument))throw Error('Unknown weather source');return luna('com.webos.applicationManager/launch',{id:'com.webos.app.browser',params:{target:argument==='forecast'?'https://open-meteo.com/':'https://www.rainviewer.com/'}});}
  if(action==='weatherDetails')return weatherData(true,argument===true);
  if(action==='radar'){const w=read('integrations.json',{}).weather;if(!w)throw Error('Configure weather first.');const cached=read('radar-cache.json',null);let data;if(cached&&Date.now()-cached.at<300000)data=cached.data;else{data=normalizeRadar(JSON.parse(await getText('https://api.rainviewer.com/public/weather-maps.json',65536)));write('radar-cache.json',{at:Date.now(),data});}return {...data,location:{latitude:w.latitude,longitude:w.longitude},city:w.label};}
@@ -157,7 +169,7 @@ async function main(action, argument) {
  }
  if(action==='sleep'){if(![0,10,30,60,90,120].includes(argument))throw new Error('Unsupported sleep duration');return gh('/api/control',{action:'sleepTimer',value:argument===0?'off':String(argument)});}
  if(action==='screenOff')return gh('/api/control',{action:'screenOff'});
- if(action==='lgHome'){fs.writeFileSync(path.join(ROOT,'allow-stock-until'),String(Date.now()+120000),{mode:0o600});return gh('/api/control',{action:'launchApp',value:'com.webos.app.home'});}
+ if(action==='lgHome'){const direct=createHomeReplacement({root:ROOT,luna});if(direct.status().enabled&&direct.mounted())return direct.escape();fs.writeFileSync(path.join(ROOT,'allow-stock-until'),String(Date.now()+120000),{mode:0o600});return gh('/api/control',{action:'launchApp',value:'com.webos.app.home'});}
  if(action==='settings')return gh('/api/control',{action:'launchApp',value:'com.palm.app.settings'});
  throw new Error('Unknown command');
 }

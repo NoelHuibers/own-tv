@@ -71,12 +71,11 @@ explicit LG Home button temporarily bypasses that router. If the setting is unsu
 system partitions.
 
 Own TV also declares the `home` app category so `launchDefaultApp` can open it
-directly. On the tested C5 firmware, exiting an app still brings LG Home to the
-foreground first, then the router opens Own TV. A brief LG Home flash can remain:
-foreground routing cannot intercept a frame that webOS already displayed.
-Removing it completely would require a separately tested replacement of the
-system Home identity. Own TV does not install that replacement or modify LG's
-Flutter Home files.
+directly. Foreground routing still allows a brief LG Home flash when an app
+exits on the tested C5 firmware. Optional **Direct Home** removes that redirect
+by mounting the complete Own TV dashboard under LG Home's system identity.
+See [Direct Home](HOME.md) for activation, scope and recovery. It is restricted
+to the tested C5/firmware combination and does not modify LG's Flutter files.
 
 Re-run install after updates: the TV regenerates client permissions on each
 install. The scoped permission repair restores only Own TV's Homebrew Channel

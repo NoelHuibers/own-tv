@@ -19,6 +19,7 @@ that every launcher feature works there. This project does not root your TV.
 - Optional Open-Meteo weather and a merged read-only calendar agenda (Google, Apple/iCloud, Proton, Outlook, ICS), with individual calendar switches and 86 selectable public holiday calendars.
 - Private computer editor over SSH; integration credentials never enter Git.
 - Default Home routing that catches direct LG Home launches, private backups and explicit rollback.
+- Optional Direct Home on the tested C5: the full dashboard replaces LG Home through a temporary mount, avoiding the LG screen flash on app exit, with heartbeat and crash recovery.
 - A conservative firmware-compatibility checker; it never installs unverified firmware.
 - Optional C5 memory mode to prevent video-app preloading, with restore and idle-app release controls.
 - A smart-home setup panel; actual smart-home control is not implemented yet.
@@ -79,6 +80,7 @@ Keep personal profiles, backups and integration files outside this repository.
 - [Setup and security](docs/SETUP.md)
 - [Security model](SECURITY.md)
 - [Recovery and uninstall](docs/RECOVERY.md)
+- [Direct Home](docs/HOME.md)
 - [Private integrations](docs/INTEGRATIONS.md)
 - [Languages and translation packs](docs/LANGUAGES.md)
 - [Weather and radar](docs/WEATHER.md)

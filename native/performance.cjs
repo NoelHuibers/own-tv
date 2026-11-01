@@ -8,6 +8,7 @@ function parseMemory(text){
 const VIDEO_APPS=new Set(['youtube.leanback.v4','netflix','amazon','com.disney.disneyplus-prod','com.netrtl.tvnow','com.webos.app.lgchannels']);
 async function releaseIdleApps(luna){
  const allowedForeground=new Set(['io.github.noelhuibers.owntv','com.webos.app.screensaver']);
+ if(require('./home-replacement.cjs').createHomeReplacement().mounted())allowedForeground.add('com.webos.app.home');
  const foreground=await luna('com.webos.applicationManager/getForegroundAppInfo',{});
  if(!allowedForeground.has(foreground.appId))throw Error('Open Own TV on the TV before releasing idle apps.');
  const running=await luna('com.webos.applicationManager/running',{}),closed=[],failed=[];
