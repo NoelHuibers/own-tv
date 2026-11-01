@@ -22,3 +22,8 @@ preferences.json
 performance.json
 device-capabilities.json
 *-cache.json
+
+# Test output
+coverage/
+test-results/
+playwright-report/

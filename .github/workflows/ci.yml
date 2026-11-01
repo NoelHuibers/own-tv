@@ -1,0 +1,235 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+# One run per branch at a time. A new push to a pull request cancels its older run; on main
+# runs queue, so every merged commit gets a complete result.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # Pinned so a new ruff release can't fail an unrelated pull request
+  RUFF_VERSION: 0.17.3
+
+jobs:
+  # Whether a pull request changes more than docs. A docs-only one (*.md, LICENSE) skips the
+  # lints, tests and builds below. Skipped jobs count as passed, and the CI gate at the end
+  # still reports; filtering the whole workflow out (paths-ignore) would leave it pending.
+  # Pushes to main always run everything.
+  changes:
+    name: Changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      # The merge commit of the pull request and its parents
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          DOCS: '([^/]+/)*([^/]+\.md|LICENSE)'
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Against the first parent, main's head: what merging the pull request changes
+          files=$(git diff --no-renames --name-only HEAD^1 HEAD)
+          printf '%s\n' "$files"
+          if [ -z "$files" ] || printf '%s\n' "$files" | grep -qvxE "$DOCS"; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Only docs changed, the lints, tests and builds are skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  lint:
+    name: Lint
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: JavaScript (ESLint)
+        run: npx eslint . --max-warnings 0
+      - name: Python (ruff)
+        run: pipx run "ruff==$RUFF_VERSION" check --output-format github .
+      # The TV's Homebrew boot hooks run under BusyBox sh
+      - name: Boot hooks (ShellCheck)
+        run: shellcheck --shell=sh --format=gcc tools/10-own-tv-ssh tools/15-own-tv-optional-services tools/40-own-tv-permission tools/60-own-tv-home
+      - name: JSON
+        run: |
+          for f in app/appinfo.json compatibility/*.json native/*.json scripts/*.json package.json; do
+            node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$f" || { echo "::error file=$f::Invalid JSON"; exit 1; }
+          done
+
+  # Node 20.12 is what the TV runs (webOS 11); the newest LTS is what a computer running the
+  # tools likely has.
+  test-node:
+    name: Test (Node ${{ matrix.node }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.12', '24']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:node
+
+  # The host tools support Python 3.10 and newer
+  test-python:
+    name: Test (Python ${{ matrix.python }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.13']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Compile
+        run: python -m py_compile tools/*.py tests/*.py
+      - run: python -m unittest discover -s tests -p '*.py' -v
+
+  coverage:
+    name: Coverage
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # Writes the per-area and per-file tables to the job summary; fails on a drop
+      - run: npm run coverage
+      # Also when the baseline check failed, the report shows which lines lost their tests
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+
+  package:
+    name: Package
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - id: build
+        name: Build the IPK
+        run: |
+          ipk=$(python tools/package.py)
+          echo "path=$ipk" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Package"
+            echo
+            echo "| File | Size | SHA-256 |"
+            echo "| --- | ---: | --- |"
+            echo "| $(basename "$ipk") | $(stat -c %s "$ipk") bytes | \`$(sha256sum "$ipk" | cut -d' ' -f1)\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: own-tv-ipk
+          path: ${{ steps.build.outputs.path }}
+          retention-days: 30
+
+  e2e:
+    name: E2E
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: Browser tests (1080p and 720p)
+        run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  # The one required check. Fails unless every job passed, or was skipped for a docs-only
+  # pull request; a failed or cancelled classification fails it too.
+  gate:
+    name: CI
+    if: always()
+    needs: [changes, lint, test-node, test-python, coverage, package, e2e]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTS: ${{ toJSON(needs) }}
+          CODE: ${{ needs.changes.outputs.code }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          if [ "$(echo "$RESULTS" | jq -r '.changes.result')" != success ]; then
+            echo "::error::The changes job didn't succeed, the checks that wait for it were skipped"
+            exit 1
+          fi
+          expected=success
+          [ "$CODE" = true ] || expected=skipped
+          failed=$(echo "$RESULTS" | jq -r --arg e "$expected" 'to_entries[] | select(.key != "changes" and .value.result != $e) | .key' | tr '\n' ' ')
+          if [ -n "$failed" ]; then
+            echo "::error::Jobs that didn't pass: $failed"
+            exit 1
+          fi

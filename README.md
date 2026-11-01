@@ -97,6 +97,24 @@ The UI is in `app/`, fixed-action TV integration in `native/`, and packaging /
 SSH tooling in `tools/`. There is no privileged web server added by Own TV.
 Contributions should include the model/webOS/firmware tested and no private data.
 
+```sh
+npm ci                                      # tooling; only ical.js ships to the TV
+npx playwright install chromium             # once, for the browser tests
+npm run lint                                # ESLint
+npm test                                    # Node unit tests + Python tool tests
+npm run test:e2e                            # dashboard previews at 1080p/720p in Chromium
+npm run coverage                            # line coverage, checked against the baseline
+npm run check                               # lint, unit and browser tests together
+```
+
+CI runs on every pull request and on `main`: ESLint, [ruff](https://docs.astral.sh/ruff/)
+and ShellCheck (the boot hooks), unit tests on Node 20.12 (the TV runtime) and
+Node 24, tool tests on Python 3.10 and 3.13, coverage against
+`scripts/coverage-baseline.json`, a reproducible IPK build (downloadable from the
+run) and the browser tests. `main` only changes through pull requests that pass
+the **CI** check. Docs-only pull requests skip the builds. When coverage
+intentionally changes, store the new numbers with `npm run coverage -- --update`.
+
 ## Credits and license
 
 MIT for Own TV. Calendar parsing uses [ical.js](https://github.com/kewisch/ical.js)
