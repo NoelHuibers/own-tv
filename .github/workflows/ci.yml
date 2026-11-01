@@ -62,13 +62,16 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      # The pnpm version of packageManager in package.json
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - name: JavaScript (ESLint)
-        run: npx eslint . --max-warnings 0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # Lint rules and formatting; any diagnostic, warnings included, fails
+      - name: JavaScript, CSS and JSON (Biome)
+        run: pnpm lint
       - name: Python (ruff)
         run: pipx run "ruff==$RUFF_VERSION" check --output-format github .
       # The TV's Homebrew boot hooks run under BusyBox sh
@@ -80,26 +83,24 @@ jobs:
             node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$f" || { echo "::error file=$f::Invalid JSON"; exit 1; }
           done
 
-  # Node 20.12 is what the TV runs (webOS 11); the newest LTS is what a computer running the
-  # tools likely has.
+  # On the TV's own Node (.node-version: webOS 11 ships 20.12.2)
   test-node:
-    name: Test (Node ${{ matrix.node }})
+    name: Test (Node)
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['20.12', '24']
     steps:
       - uses: actions/checkout@v7
+      # The pnpm version of packageManager in package.json
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run test:node
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: node --version
+      - run: pnpm test:node
 
   # The host tools support Python 3.10 and newer
   test-python:
@@ -129,13 +130,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      # The pnpm version of packageManager in package.json
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci --ignore-scripts
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       # Writes the per-area and per-file tables to the job summary; fails on a drop
-      - run: npm run coverage
+      - run: pnpm coverage
       # Also when the baseline check failed, the report shows which lines lost their tests
       - if: always()
         uses: actions/upload-artifact@v7
@@ -181,24 +184,26 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+      # The pnpm version of packageManager in package.json
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
-          cache: npm
-      - run: npm ci --ignore-scripts
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
         id: browsers
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - if: steps.browsers.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
       - if: steps.browsers.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: pnpm exec playwright install-deps chromium
       - name: Browser tests (1080p and 720p)
-        run: npm run test:e2e
+        run: pnpm test:e2e
       - if: failure()
         uses: actions/upload-artifact@v7
         with:

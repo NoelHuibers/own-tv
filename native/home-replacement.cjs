@@ -121,7 +121,7 @@ function createHomeReplacement(options={}){
  // again. Relaunching stock Home here would race that remount and leave SAM
  // without a foreground window.
  async function recover(reason){if(!status().enabled)return {ok:true,enabled:false};return disable(reason,{keepEnabled:true,phase:'recovering',launch:false});}
- async function escape({launch=true}={}){fs.writeFileSync(path.join(root,'allow-stock-until'),String(now()+120000),{mode:0o600});return disable(null,{keepEnabled:true,launch});}
- return {status,mounted,token,heartbeat,prepare,enable,disable,recover,guard,escape,stopFlutter,refresh};
+ async function escapeToStock({launch=true}={}){fs.writeFileSync(path.join(root,'allow-stock-until'),String(now()+120000),{mode:0o600});return disable(null,{keepEnabled:true,launch});}
+ return {status,mounted,token,heartbeat,prepare,enable,disable,recover,guard,escape:escapeToStock,stopFlutter,refresh};
 }
 module.exports={createHomeReplacement,isLgFlutter,heartbeatExpired,LG,APP};

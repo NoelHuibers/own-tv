@@ -12,14 +12,14 @@
   if(!onTV)return Promise.reject(new Error('Preview only. Connect a TV through the local editor.'));
   return new Promise(function(resolve,reject){
    var bridge=new window.PalmServiceBridge(),finished=false;
-   var timer=setTimeout(function(){if(!finished){finished=true;try{bridge.cancel();}catch(e){}reject(new Error('TV did not respond'));}},60000);
+   var timer=setTimeout(function(){if(!finished){finished=true;try{bridge.cancel();}catch{}reject(new Error('TV did not respond'));}},60000);
    var args=value===undefined?'':' '+btoa(unescape(encodeURIComponent(JSON.stringify(value))));
    if(!/^[a-zA-Z]+$/.test(action)){reject(new Error('Invalid action'));return;}
    bridge.onservicecallback=function(raw){
     if(finished)return;finished=true;clearTimeout(timer);
     try{var r=JSON.parse(raw);if(r.returnValue===false)throw new Error('Own TV needs its Homebrew Channel permission. Run the permission repair tool.');
      resolve(check(JSON.parse(r.stdoutString||'{}')));
-    }catch(e){reject(e);}finally{try{bridge.cancel();}catch(e){}}
+    }catch(e){reject(e);}finally{try{bridge.cancel();}catch{}}
    };
    bridge.call('luna://org.webosbrew.hbchannel.service/exec',JSON.stringify({command:'/usr/bin/node /var/lib/own-tv/helper.cjs '+action+args}));
   });

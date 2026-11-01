@@ -1,9 +1,9 @@
 // Line coverage of the unit tests, held against a baseline so it can't quietly drop.
 //
-//   npm run coverage              run the tests with coverage, report, compare to the baseline
-//   npm run coverage -- --update  the same, then store the new numbers as the baseline
+//   pnpm coverage                 run the tests with coverage, report, compare to the baseline
+//   pnpm coverage --update        the same, then store the new numbers as the baseline
 //
-// Uses Node's built-in coverage (Node 22+). Reports land in coverage/: lcov.info and
+// Uses Node's built-in coverage, on the TV's Node 20.12. Reports land in coverage/: lcov.info and
 // summary.md (also appended to the job summary in CI).
 //
 // Fails when the total or an area (app/, native/) drops more than TOLERANCE percentage
@@ -20,12 +20,6 @@ const root = path.resolve(import.meta.dirname, '..');
 const out = path.join(root, 'coverage');
 const baselineFile = path.join(root, 'scripts/coverage-baseline.json');
 const update = process.argv.includes('--update');
-
-const [major] = process.versions.node.split('.').map(Number);
-if (major < 22) {
-  console.error(`Coverage needs Node 22 or newer (running ${process.version}).`);
-  process.exit(1);
-}
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
@@ -47,7 +41,11 @@ let current = null;
 for (const line of fs.readFileSync(path.join(out, 'lcov.info'), 'utf8').split('\n')) {
   if (line.startsWith('SF:')) {
     const rel = path.relative(root, line.slice(3)).split(path.sep).join('/');
-    current = AREAS.includes(rel.split('/')[0]) ? (files[rel] = { found: 0, hit: 0 }) : null;
+    current = null;
+    if (AREAS.includes(rel.split('/')[0])) {
+      current = { found: 0, hit: 0 };
+      files[rel] = current;
+    }
   } else if (current && line.startsWith('LF:')) current.found = Number(line.slice(3));
   else if (current && line.startsWith('LH:')) current.hit = Number(line.slice(3));
 }
@@ -88,6 +86,6 @@ if (update) {
   fs.writeFileSync(baselineFile, JSON.stringify(result, null, 2) + '\n');
   console.log(`\nStored the baseline in ${path.relative(root, baselineFile)}.`);
 } else if (rows.some((r) => r.drop)) {
-  console.error(`\nCoverage dropped more than ${TOLERANCE} point(s) below the baseline. Add tests, or if the drop is intended, run: npm run coverage -- --update`);
+  console.error(`\nCoverage dropped more than ${TOLERANCE} point(s) below the baseline. Add tests, or if the drop is intended, run: pnpm coverage --update`);
   process.exit(1);
 }

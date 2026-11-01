@@ -5,26 +5,26 @@
   "description": "A private, personal dashboard for rooted LG webOS TVs",
   "license": "MIT",
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
-    "test": "npm run test:node && npm run test:python",
+    "lint": "biome ci --error-on-warnings .",
+    "test": "pnpm test:node && pnpm test:python",
     "test:node": "node --test tests/*.test.cjs",
     "test:python": "python3 -m unittest discover -s tests -p \"*.py\"",
     "test:e2e": "playwright test",
     "coverage": "node scripts/coverage.mjs",
-    "check": "npm run lint && npm test && npm run test:e2e",
+    "check": "pnpm lint && pnpm test && pnpm test:e2e",
     "preview": "python3 -m http.server 5173 --bind 127.0.0.1 --directory app",
-    "package": "python3 tools/package.py"
+    "package": "python3 tools/package.py",
+    "format": "biome check --write ."
   },
   "dependencies": {
     "ical.js": "2.2.1"
   },
   "devDependencies": {
-    "@eslint/js": "9.39.5",
-    "@playwright/test": "1.64.1",
-    "eslint": "9.39.5",
-    "globals": "17.14.0"
+    "@biomejs/biome": "2.6.4",
+    "@playwright/test": "1.64.1"
   },
   "engines": {
-    "node": ">=20.12"
-  }
+    "node": "^20.12.2"
+  },
+  "packageManager": "pnpm@12.14.0"
 }

@@ -55,8 +55,9 @@ class TV:
             for name in ['helper.cjs','integrations.cjs','firmware.cjs','home-route.cjs','home-replacement.cjs','home-api.cjs','weather.cjs','performance.cjs','calendar-feed.cjs','calendar-agenda.cjs','calendar-settings.cjs','holiday-catalog.json']:tar.add(ROOT/'native'/name,arcname=name)
             tar.add(ROOT/'compatibility/firmware.json',arcname='compatibility/firmware.json')
             build=json.dumps({'version':json.loads((ROOT/'package.json').read_text())['version']}).encode();info=tarfile.TarInfo('build.json');info.size=len(build);info.mode=0o600;tar.addfile(info,io.BytesIO(build))
-            dependency=ROOT/'node_modules/ical.js'
-            if not dependency.exists():raise RuntimeError('Run npm ci first')
+            # pnpm links node_modules/ical.js into its store: ship the real files
+            dependency=(ROOT/'node_modules/ical.js').resolve()
+            if not (dependency/'package.json').exists():raise RuntimeError('Run pnpm install first')
             tar.add(dependency,arcname='node_modules/ical.js')
         self.run('umask 077; mkdir -p /var/lib/own-tv; tar -xf - -C /var/lib/own-tv && chown -R 0:0 /var/lib/own-tv && chmod 700 /var/lib/own-tv',bundle.getvalue())
         self.run('cat > /tmp/own-tv.ipk',ipk.read_bytes())

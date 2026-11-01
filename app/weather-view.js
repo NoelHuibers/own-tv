@@ -14,7 +14,7 @@
   var zoom=6,center=null,frameIndex=0,shownIndex=-1,playing=false,playTimer=null,paintTimer=null,metadataTimer=null,forecastTimer=null,serial=0,images=new Map(),requests=[],mapPan=false;
   function t(k){var fallback=words[k]||EN[k]||k;return ctx.translate?ctx.translate('weather:'+k,fallback):fallback;}
   function text(en,de){var fallback=ctx.language.split('-')[0]==='de'?de:en;return ctx.translate?ctx.translate('text:'+en,fallback):fallback;}
-  function num(v,d){return typeof v==='number'&&isFinite(v)?v.toLocaleString(lang,{maximumFractionDigits:d||0}):'—';}
+  function num(v,d){return typeof v==='number'&&Number.isFinite(v)?v.toLocaleString(lang,{maximumFractionDigits:d||0}):'—';}
   function time(v){try{return new Intl.DateTimeFormat(lang,{hour:'2-digit',minute:'2-digit',timeZone:data&&data.timezone||undefined}).format(new Date(v));}catch{return '—';}}
   function day(v,long){try{return new Intl.DateTimeFormat(lang,{weekday:long?'long':'short',day:'numeric',month:'short',timeZone:data&&data.timezone||undefined}).format(new Date(v));}catch{return '—';}}
   function condition(code){if(typeof code!=='number')return '—';if(code>=0&&code<=3)return [text('Clear','Klar'),text('Mostly clear','Überwiegend klar'),text('Partly cloudy','Teils bewölkt'),text('Overcast','Bedeckt')][code];return code>=95?text('Thunderstorm','Gewitter'):code>=71&&code<=77||code===85||code===86?text('Snow','Schnee'):code>=51?text('Rain','Regen'):code===45||code===48?text('Fog','Nebel'):t('title');}

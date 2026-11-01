@@ -1,0 +1,57 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+	"files": {
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!dist",
+			"!coverage",
+			"!test-results",
+			"!playwright-report"
+		]
+	},
+	"formatter": { "enabled": false },
+	"assist": { "enabled": false },
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"complexity": {
+				"useArrowFunction": "off",
+				"useOptionalChain": "off",
+				"noArguments": "off",
+				"useMathMinMax": "off",
+				"noImportantStyles": "off"
+			},
+			"style": {
+				"useTemplate": "off",
+				"useExponentiationOperator": "off",
+				"noDescendingSpecificity": "off"
+			},
+			"suspicious": {
+				"noControlCharactersInRegex": "off"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["app/**/*.js"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noInnerDeclarations": "off",
+						"noSwitchDeclarations": "off"
+					},
+					"suspicious": { "noRedundantUseStrict": "off" }
+				}
+			}
+		},
+		{
+			"includes": ["app/data/**"],
+			"linter": {
+				"rules": { "suspicious": { "noApproximativeNumericConstant": "off" } }
+			}
+		}
+	]
+}

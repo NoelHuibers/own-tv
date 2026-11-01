@@ -38,7 +38,7 @@ async function directForeground(appId){
  }
  directBusy=true;
  try{try{fs.unlinkSync(ROOT+'/allow-stock-until');}catch{}observedStock=false;const power=await once('com.webos.service.tvpower/power/getPowerState',{});await replacement.enable({launch:power.state==='Active'&&(!appId||STOCK.has(appId)||appId===APP)});}
- catch(e){console.error('Direct Home could not start; foreground routing retained.');}
+ catch{console.error('Direct Home could not start; foreground routing retained.');}
  finally{directBusy=false;}
  return replacement.status().enabled;
 }
@@ -61,6 +61,7 @@ async function foreground(appId){
 function subscribe(){
  if(stopping)return;
  subscription=spawn('/usr/bin/luna-send',['-i','luna://com.webos.applicationManager/getForegroundAppInfo','{"subscribe":true}'],{stdio:['pipe','pipe','ignore']});
+ // biome-ignore lint/suspicious/noAssignInExpressions: drains complete lines from the stream buffer
  let pending='';subscription.stdout.on('data',b=>{pending+=b.toString();if(pending.length>65536)pending='';let i;while((i=pending.indexOf('\n'))!==-1){const line=pending.slice(0,i).trim();pending=pending.slice(i+1);try{const d=JSON.parse(line);if(d.appId)foreground(d.appId);}catch{}}});
  subscription.on('error',()=>{});subscription.on('close',()=>{subscription=null;if(!stopping)setTimeout(subscribe,5000);});
 }

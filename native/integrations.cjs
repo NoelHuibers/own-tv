@@ -31,6 +31,7 @@ function expandCalendar(text, now=new Date(), days=14,busyOnly=true){
   const append=(start,end,title,allDay,startDate,endDate)=>{if(end.getTime()>=lower&&start.getTime()<upper)events.push({title:busyOnly?'Busy':String(title||'Event').slice(0,180),start:allDay?startDate:start.toISOString(),end:allDay?endDate:end.toISOString(),allDay:!!allDay});};
   if(!event.isRecurring()){append(event.startDate.toJSDate(),event.endDate.toJSDate(),event.summary,event.startDate.isDate,event.startDate.toString(),event.endDate.toString());continue;}
   const it=event.iterator();let occurrence,count=0;
+  // biome-ignore lint/suspicious/noAssignInExpressions: ical.js iterators signal the end with a null occurrence
   while((occurrence=it.next())&&count++<20000){if(occurrence.toJSDate().getTime()>=upper)break;const d=event.getOccurrenceDetails(occurrence);if(d.item.component.getFirstPropertyValue('status')==='CANCELLED')continue;append(d.startDate.toJSDate(),d.endDate.toJSDate(),d.item.summary,d.startDate.isDate,d.startDate.toString(),d.endDate.toString());if(events.length>=100)break;}
  }
  return events.sort((a,b)=>a.start.localeCompare(b.start)).slice(0,30);

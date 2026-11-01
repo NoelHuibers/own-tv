@@ -34,7 +34,8 @@ that the app's streaming service or subscription has been tested.
 - [Glasshouse](https://github.com/rorygallagher2024/glasshouse), listening only
   on TV loopback, with a unique token. It supplies the TV controls and readings.
   See [the setup guide](docs/SETUP.md).
-- Computer: Node 20+, Python 3.10+, OpenSSH and Git. No global LG SDK required.
+- Computer: Node 20.12 (the TV's version, pinned in `.node-version`), pnpm,
+  Python 3.10+, OpenSSH and Git. No global LG SDK required.
 - TV: Node 18+ and a browser supporting the dashboard. Only the C5 above has
   been tested so far; do not assume old webOS models are compatible.
 
@@ -43,8 +44,8 @@ that the app's streaming service or subscription has been tested.
 ```sh
 git clone https://github.com/NoelHuibers/own-tv.git
 cd own-tv
-npm ci
-npm test
+pnpm install
+pnpm test
 python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room backup --destination /path/to/private/backups
 python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room install
 python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room open
@@ -71,7 +72,7 @@ Open the loopback URL printed by the command. Add `/integrations` to configure
 weather and a private calendar subscription. No public server is needed. The
 editor must stay running while you use it; the TV itself runs independently.
 
-`npm run preview` serves a disconnected browser preview. `npm run package` creates
+`pnpm preview` serves a disconnected browser preview. `pnpm package` creates
 a deterministic unsigned IPK under `dist/`, using Python's standard library.
 Keep personal profiles, backups and integration files outside this repository.
 
@@ -98,22 +99,25 @@ SSH tooling in `tools/`. There is no privileged web server added by Own TV.
 Contributions should include the model/webOS/firmware tested and no private data.
 
 ```sh
-npm ci                                      # tooling; only ical.js ships to the TV
-npx playwright install chromium             # once, for the browser tests
-npm run lint                                # ESLint
-npm test                                    # Node unit tests + Python tool tests
-npm run test:e2e                            # dashboard previews at 1080p/720p in Chromium
-npm run coverage                            # line coverage, checked against the baseline
-npm run check                               # lint, unit and browser tests together
+pnpm install                        # tooling; only ical.js ships to the TV
+pnpm exec playwright install chromium   # once, for the browser tests
+pnpm lint                           # Biome: lint rules and formatting
+pnpm format                         # apply Biome's safe fixes and formatting
+pnpm test                           # Node unit tests + Python tool tests
+pnpm test:e2e                       # dashboard previews at 1080p/720p in Chromium
+pnpm coverage                       # line coverage, checked against the baseline
+pnpm check                          # lint, unit and browser tests together
 ```
 
-CI runs on every pull request and on `main`: ESLint, [ruff](https://docs.astral.sh/ruff/)
-and ShellCheck (the boot hooks), unit tests on Node 20.12 (the TV runtime) and
-Node 24, tool tests on Python 3.10 and 3.13, coverage against
+Development and CI use the TV's own Node 20.12.2, so nothing passes on the
+computer that the TV can't run. CI runs on every pull request and on `main`:
+[Biome](https://biomejs.dev/), [ruff](https://docs.astral.sh/ruff/) and
+ShellCheck (the boot hooks), unit tests on Node 20.12, tool tests on Python
+3.10 and 3.13, coverage against
 `scripts/coverage-baseline.json`, a reproducible IPK build (downloadable from the
 run) and the browser tests. `main` only changes through pull requests that pass
 the **CI** check. Docs-only pull requests skip the builds. When coverage
-intentionally changes, store the new numbers with `npm run coverage -- --update`.
+intentionally changes, store the new numbers with `pnpm coverage --update`.
 
 ## Credits and license
 

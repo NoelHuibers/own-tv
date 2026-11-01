@@ -658,7 +658,7 @@
   }
 
   function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
-  function finite(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
+  function finite(v) { return typeof v === 'number' && Number.isFinite(v) ? v : null; }
   function str(v) { return typeof v === 'string' ? v : (typeof v === 'number' ? String(v) : ''); }
   function clip(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
   function round2(n) { return Math.round(n * 100) / 100; }
@@ -789,13 +789,13 @@
     try {
       var s = JSON.parse(window.localStorage.getItem(SYNC_KEY) || 'null');
       if (isObj(s)) {
-        if (typeof s.revision === 'number' && isFinite(s.revision) && s.revision >= 0) lastRemoteRevision = s.revision;
+        if (typeof s.revision === 'number' && Number.isFinite(s.revision) && s.revision >= 0) lastRemoteRevision = s.revision;
         prefsDirty = s.dirty === true;
       }
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
   })();
   function saveSync() {
-    try { window.localStorage.setItem(SYNC_KEY, JSON.stringify({ revision: lastRemoteRevision, dirty: prefsDirty })); } catch (e) { /* ignore */ }
+    try { window.localStorage.setItem(SYNC_KEY, JSON.stringify({ revision: lastRemoteRevision, dirty: prefsDirty })); } catch { /* ignore */ }
   }
   function loadPrefs() {
     try {
@@ -803,7 +803,7 @@
       if (!raw) return defaultPrefs();
       hadStoredPrefs = true;
       return sanitizePrefs(JSON.parse(raw));
-    } catch (e) {
+    } catch {
       return defaultPrefs();
     }
   }
@@ -811,7 +811,7 @@
     try {
       window.localStorage.setItem(STORE_KEY, JSON.stringify(prefs));
       storageOk = true;
-    } catch (e) {
+    } catch {
       if (storageOk && !quiet) toast(t('toast.storage'), 'error');
       storageOk = false;
     }
@@ -827,7 +827,7 @@
     var el = document.createElement(tag);
     if (props) {
       for (var k in props) {
-        if (!Object.prototype.hasOwnProperty.call(props, k)) continue;
+        if (!Object.hasOwn(props, k)) continue;
         var v = props[k];
         if (v === null || v === undefined || v === false) continue;
         if (k === 'class') el.className = v;
@@ -892,7 +892,7 @@
     requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.remove('no-anim'); }); });
   }
   function findFid(fid) {
-    try { return document.querySelector('[data-fid="' + CSS.escape(fid) + '"]'); } catch (e) { return null; }
+    try { return document.querySelector('[data-fid="' + CSS.escape(fid) + '"]'); } catch { return null; }
   }
 
   /* ======================================================================
@@ -965,7 +965,7 @@
       if (bodyHex && satOf(hexToRgb(bodyHex)) > 0.28) return { tone: bodyHex, neutral: false };
       var base = edgeHex || bodyHex;
       return base ? { tone: base, neutral: true } : null;
-    } catch (e) { return null; }
+    } catch { return null; }
   }
 
   /* Card colours for both themes. Night fields stay deep (OLED, dark room);
@@ -1029,7 +1029,7 @@
      Bridge adapter
      ====================================================================== */
   var params;
-  try { params = new URLSearchParams(window.location.search); } catch (e) { params = { get: function () { return null; } }; }
+  try { params = new URLSearchParams(window.location.search); } catch { params = { get: function () { return null; } }; }
   var previewKind = (function () {
     var p = params.get('preview');
     return (!IS_WEBOS && (p === 'sample' || p === 'empty' || p === 'error')) ? p : null;
@@ -1176,12 +1176,12 @@
     return null; // no remote hosts
   }
   function parseWhen(v) {
-    if (typeof v === 'number' && isFinite(v)) return { d: new Date(v < 1e12 ? v * 1000 : v), allDay: false };
+    if (typeof v === 'number' && Number.isFinite(v)) return { d: new Date(v < 1e12 ? v * 1000 : v), allDay: false };
     if (typeof v !== 'string') return null;
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
     if (m) return { d: new Date(+m[1], +m[2] - 1, +m[3]), allDay: true };
     var ms = Date.parse(v);
-    return isNaN(ms) ? null : { d: new Date(ms), allDay: false };
+    return Number.isNaN(ms) ? null : { d: new Date(ms), allDay: false };
   }
   function stamp(v) { var w = parseWhen(v); return w && !w.allDay ? w.d.getTime() : null; }
   function normalizeState(raw) {
@@ -1303,7 +1303,7 @@
   function adoptRemotePrefs(raw) {
     if (Bridge.mode !== 'live' || !isObj(raw)) return;
     var rev = Number(raw.preferencesRevision);
-    if (!isFinite(rev) || rev < 0) rev = 0;
+    if (!Number.isFinite(rev) || rev < 0) rev = 0;
     var remote = raw.preferences;
     if (!isObj(remote) || remote.schema !== 1) {
       // The helper has nothing yet: seed it once with this screen's preferences.
@@ -1443,14 +1443,14 @@
      Formatting
      ====================================================================== */
   function loc() { return prefs.language==='en'?'en-GB':prefs.language; }
-  function fmtTime(d) { try{return new Intl.DateTimeFormat(loc(),{hour:'2-digit',minute:'2-digit'}).format(d);}catch(e){return pad(d.getHours())+':'+pad(d.getMinutes());} }
+  function fmtTime(d) { try{return new Intl.DateTimeFormat(loc(),{hour:'2-digit',minute:'2-digit'}).format(d);}catch {return pad(d.getHours())+':'+pad(d.getMinutes());} }
   function fmtDate(d, opts) {
     try { return d.toLocaleDateString(loc(), opts || { weekday: 'long', day: 'numeric', month: 'long' }); }
-    catch (e) { return d.toDateString(); }
+    catch { return d.toDateString(); }
   }
   function fmtNum(n, digits) {
     try { return new Intl.NumberFormat(loc(), { maximumFractionDigits: digits || 0 }).format(n); }
-    catch (e) { return String(Math.round(n)); }
+    catch { return String(Math.round(n)); }
   }
   function fmtUptime(sec) {
     var d = Math.floor(sec / 86400), hh = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
@@ -2267,7 +2267,7 @@
       if (el.selectionStart !== el.selectionEnd) return false;
       if (dir === 'left' || dir === 'up') return el.selectionStart === 0;
       return el.selectionEnd === el.value.length;
-    } catch (e) { return true; }
+    } catch { return true; }
   }
 
   function goBack() {
@@ -2526,7 +2526,7 @@
       syncInFlight = false;
       syncWarned = false;
       var rev = Number(reply && reply.revision);
-      if (isFinite(rev) && rev > lastRemoteRevision) lastRemoteRevision = rev;
+      if (Number.isFinite(rev) && rev > lastRemoteRevision) lastRemoteRevision = rev;
       if (seq === editSeq) prefsDirty = false;
       else if (!syncTimer) syncTimer = setTimeout(flushPrefs, 400);
       saveSync();
@@ -2630,7 +2630,7 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
       toast(t('toast.exported'), 'ok');
-    } catch (e) {
+    } catch {
       ui.exportShown = true; renderSettings();
     }
   }
@@ -2640,7 +2640,7 @@
     if (!text.trim()) rep.errors.push(t('imp.empty'));
     else if (text.length > MAX_IMPORT_CHARS) rep.errors.push(t('imp.tooBig'));
     var obj = null;
-    if (!rep.errors.length) { try { obj = JSON.parse(text); } catch (e) { rep.errors.push(t('imp.json')); } }
+    if (!rep.errors.length) { try { obj = JSON.parse(text); } catch { rep.errors.push(t('imp.json')); } }
     var raw = null;
     if (!rep.errors.length) {
       if (!isObj(obj)) rep.errors.push(t('imp.notObject'));
