@@ -664,7 +664,7 @@
   function round2(n) { return Math.round(n * 100) / 100; }
 
   // Anything that smells like a link or credential is refused outright.
-  var SECRET_RE = /:\/\/|webcal|\.ics\b|token|secret|passw|api[_-]?key|bearer|calendar\.proton|[A-Za-z0-9_\-]{32,}/i;
+  var SECRET_RE = /:\/\/|webcal|\.ics\b|token|secret|passw|api[_-]?key|bearer|calendar\.proton|[A-Za-z0-9_-]{32,}/i;
   function looksSecret(s) { return SECRET_RE.test(s); }
   function cleanText(v, max) {
     if (typeof v !== 'string') return null;
@@ -1172,7 +1172,7 @@
     if (typeof v !== 'string' || !v) return null;
     if (/^data:image\/(png|jpe?g|webp|svg\+xml);/i.test(v)) return v;
     if (/^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/|file:\/\/\/|\/)/i.test(v)) return v;
-    if (/^[\w.\-\/]+\.(png|jpe?g|webp|svg)$/i.test(v) && v.indexOf('..') < 0) return v;
+    if (/^[\w./-]+\.(png|jpe?g|webp|svg)$/i.test(v) && v.indexOf('..') < 0) return v;
     return null; // no remote hosts
   }
   function parseWhen(v) {
@@ -1669,30 +1669,6 @@
       more: more, action: 'open-settings', arg: 'calendar' });
   }
 
-  function recentEntries() {
-    var list = state.data && state.data.recent;
-    if (!list) return null;
-    var apps = (state.data && state.data.apps) || [];
-    return list.filter(function (r) { return r.id !== OWN_APP_ID && r.id !== 'com.webos.app.home'; }).slice(0, 3).map(function (r) {
-      var match = null;
-      CATALOG.forEach(function (c) { if (!match && (c.ids.indexOf(r.id) >= 0 || c.names.indexOf(norm(r.title)) >= 0)) match = c; });
-      var src = apps.filter(function (a) { return a.id === r.id; })[0];
-      return { id: r.id, title: match ? match.title : r.title, icon: src && src.icon, art: match ? match.art : EXTRA_ART[hashStr(r.id) % EXTRA_ART.length], mono: match ? match.mono : monoFor(r.title) };
-    });
-  }
-  function wRecent() {
-    var label = t('sec.recent');
-    var list = recentEntries();
-    if (!list) return naGlance('recent', 'recent', label);
-    if (!list.length) return glance('recent', { icon: 'recent', label: label, value: t('rec.empty'), tone: 'quiet' });
-    return glance('recent', { icon: 'recent', label: label,
-      body: h('span', { class: 'recs' }, list.map(function (r) {
-        var art = artFor(r);
-        return h('button', { class: 'rec', type: 'button', 'data-action': 'launch-id', 'data-arg': r.id, 'data-label': r.title, 'data-fid': 'rec:' + r.id, 'aria-label': t('rec.open', { title: r.title }), style: art.vars },
-          r.icon ? h('img', { class: 'rec__icon', src: r.icon, alt: '' }) : h('span', { class: 'rec__mono', 'aria-hidden': 'true' }, r.mono),
-          h('span', { class: 'rec__name', 'aria-hidden': 'true' }, r.title));
-      })) });
-  }
 
   function currentSleep() {
     var now = Date.now();

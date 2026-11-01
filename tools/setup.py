@@ -7,9 +7,7 @@ import argparse
 import base64
 import ipaddress
 from pathlib import Path
-import shlex
 import subprocess
-import time
 from telnet_bootstrap import run
 ROOT=Path(__file__).resolve().parents[1]
 if __name__=='__main__':

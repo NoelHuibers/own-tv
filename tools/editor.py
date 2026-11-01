@@ -18,7 +18,7 @@ def invoke(ssh_config,host,action,value=None):
     try:result=subprocess.run(['ssh','-F',ssh_config,'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes',host,shlex.join(command)],capture_output=True,text=True,timeout=75)
     except subprocess.TimeoutExpired:raise RuntimeError('TV connection timed out. Check SSH and retry.') from None
     try: reply=json.loads(result.stdout)
-    except (ValueError,TypeError):raise RuntimeError('TV connection failed. Check SSH and install the native helper.')
+    except (ValueError,TypeError):raise RuntimeError('TV connection failed. Check SSH and install the native helper.') from None
     if result.returncode or reply.get('ok') is False:raise RuntimeError(reply.get('error','TV operation failed'))
     return reply
 

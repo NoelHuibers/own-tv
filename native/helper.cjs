@@ -45,7 +45,7 @@ async function appIcons(apps) {
  if(changed)write('icons-cache.json',{at:Date.now(),items});return items;
 }
 function ghIcon(id) {
- return new Promise((resolve,reject)=>{
+ return new Promise((resolve)=>{
   const cfg=JSON.parse(fs.readFileSync('/var/lib/tvweb/config.json','utf8'));
   const req=http.get({hostname:'127.0.0.1',port:cfg.port||8080,path:'/api/apps/icon?id='+encodeURIComponent(id),headers:{Authorization:'Bearer '+cfg.token}},res=>{
    const type=String(res.headers['content-type']||'').split(';')[0];

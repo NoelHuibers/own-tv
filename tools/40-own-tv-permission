@@ -4,7 +4,7 @@
 APP=io.github.noelhuibers.owntv
 FILE=/var/luna-service2-dev/client-permissions.d/$APP.app.json
 [ -f "$FILE" ] || exit 0
-/usr/bin/node - "$FILE" "$APP" <<'JS'
+/usr/bin/node - "$FILE" "$APP" <<'JS' || exit 1
 const fs=require('fs');
 const file=process.argv[2],id=process.argv[3];
 const data=JSON.parse(fs.readFileSync(file,'utf8'));
@@ -13,4 +13,4 @@ const key=Array.isArray(data[id])?id:Array.isArray(data[id+'-*'])?id+'-*':null;
 if(!key)throw Error('Unexpected permission format; refusing to change it');
 if(!data[key].includes(group)){data[key].push(group);fs.writeFileSync(file,JSON.stringify(data));}
 JS
-[ "$?" -eq 0 ] && /usr/sbin/ls-control scan-services >/dev/null 2>&1
+/usr/sbin/ls-control scan-services >/dev/null 2>&1

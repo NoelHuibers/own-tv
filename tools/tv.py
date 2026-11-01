@@ -94,7 +94,7 @@ class TV:
             # Restore only Home, preserve any other settings changed meanwhile.
             current['home']=saved.get('home','com.webos.app.home')
             self.run('if [ -f /var/lib/own-tv/home-route.cjs ]; then /usr/bin/node /var/lib/own-tv/home-route.cjs --stop; fi; rm -f /var/lib/webosbrew/init.d/60-own-tv-home')
-        result=self.luna('com.webos.settingsservice/setSystemSettings',{'category':'general','settings':{'defaultApps':current}})
+        self.luna('com.webos.settingsservice/setSystemSettings',{'category':'general','settings':{'defaultApps':current}})
         verify=self.luna('com.webos.settingsservice/getSystemSettings',{'category':'general','keys':['defaultApps']})
         if verify.get('settings',{}).get('defaultApps',{}).get('home')!=current.get('home'):raise RuntimeError('Home change was not applied')
         if not restore:self.run('cat > /var/lib/webosbrew/init.d/60-own-tv-home && chmod 755 /var/lib/webosbrew/init.d/60-own-tv-home && sh /var/lib/webosbrew/init.d/60-own-tv-home',(ROOT/'tools/60-own-tv-home').read_bytes())
