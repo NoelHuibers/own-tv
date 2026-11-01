@@ -1,0 +1,8 @@
+# The host tools (SSH deployer, editor, packager) target Python 3.10+.
+target-version = "py310"
+
+[lint]
+# Pyflakes, pycodestyle errors/warnings and bugbear: defects, not style.
+select = ["E", "F", "W", "B"]
+# The tools use a compact one-statement-per-line style on purpose.
+ignore = ["E401", "E501", "E701", "E702", "E722", "E731", "E741"]

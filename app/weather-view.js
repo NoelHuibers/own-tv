@@ -173,7 +173,7 @@
    }
 
    if((k===37||k===39)&&cur&&cur.dataset.tab){var tabs=Array.prototype.slice.call(host.querySelectorAll('.wx-tabs [data-tab]'));var i=tabs.indexOf(cur);if(i>=0){var next=tabs[i+(k===39?1:-1)];if(next)next.focus({preventScroll:true});return true;}}
-   if((k===37||k===39)&&cur&&cur.dataset.day){var days=Array.prototype.slice.call(host.querySelectorAll('[data-day]'));var i=days.indexOf(cur),next=days[i+(k===39?1:-1)];if(next)next.focus({preventScroll:true});return true;}
+   if((k===37||k===39)&&cur&&cur.dataset.day){var days=Array.prototype.slice.call(host.querySelectorAll('[data-day]'));var d=days.indexOf(cur),day=days[d+(k===39?1:-1)];if(day)day.focus({preventScroll:true});return true;}
    return false;
   }
   function pointerDown(e){if(e.target!==canvas||!center)return;ctx.onInput();drag={x:e.clientX,y:e.clientY,center:world(center.latitude,center.longitude),moved:false};try{canvas.setPointerCapture(e.pointerId);}catch{}}
