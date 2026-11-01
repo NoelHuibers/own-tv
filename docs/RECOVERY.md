@@ -6,7 +6,7 @@ SSH or remove Homebrew Channel while troubleshooting the launcher.
 ## Restore LG Home
 
 ```sh
-python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room home-restore
+pnpm tv --ssh-config /path/to/private/ssh_config --host living-room home-restore
 ```
 
 This first releases Direct Home, restores LG's original app identity and video
@@ -18,7 +18,7 @@ Remove `/var/lib/webosbrew/init.d/40-own-tv-permission` if no longer needed.
 To disable Direct Home while retaining ordinary Own TV foreground routing:
 
 ```sh
-python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room home-direct-disable
+pnpm tv --ssh-config /path/to/private/ssh_config --host living-room home-direct-disable
 ```
 
 If the computer tool is unavailable, run this in the TV's root SSH shell before

@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Reads and updates package-lock.json. ical.js is the only runtime dependency (it ships to
+  # Reads and updates pnpm-lock.yaml. ical.js is the only runtime dependency (it ships to
   # the TV); the rest is lint and test tooling.
   - package-ecosystem: npm
     directory: /
@@ -8,11 +8,6 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
     groups:
-      eslint:
-        patterns:
-          - "eslint"
-          - "@eslint/*"
-          - "globals"
       dev-minor-and-patch:
         dependency-type: development
         update-types:

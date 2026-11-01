@@ -27,3 +27,4 @@ device-capabilities.json
 coverage/
 test-results/
 playwright-report/
+build/

@@ -1,0 +1,112 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    // geography.js is generated Natural Earth data (see docs/WEATHER.md)
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!build",
+      "!dist",
+      "!coverage",
+      "!test-results",
+      "!playwright-report",
+      "!app/data/geography.js"
+    ]
+  },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  // Docs are prose: Biome's Markdown formatter pads every table to its widest cell, which
+  // makes small edits rewrite whole tables. Its Markdown lint rules still run.
+  "markdown": { "formatter": { "enabled": false } },
+  "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    // Everything recommended, plus the strict rules below, all as errors (CI also fails on
+    // warnings). Rules of Biome's "all" set that are left out don't fit this project: magic
+    // numbers, ternaries, CommonJS and Node modules are how the TV helpers work, and the
+    // framework rules (React, Qwik, Solid, Vue) don't apply.
+    "rules": {
+      "preset": "recommended",
+      "complexity": {
+        "noArguments": "error",
+        "noImplicitCoercions": "error",
+        "noImportantStyles": "error",
+        "noUselessStringConcat": "error",
+        "noUselessUndefinedInitialization": "error",
+        "useArrowFunction": "error",
+        "useMathMinMax": "error",
+        "useOptionalChain": "error",
+        "useSimpleNumberKeys": "error"
+      },
+      "correctness": {
+        "noUndeclaredVariables": "error",
+        "noUnusedFunctionParameters": "error",
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error"
+      },
+      "security": { "noSecrets": "error" },
+      "style": {
+        "noInferrableTypes": "error",
+        "noNegationElse": "error",
+        "noNonNullAssertion": "error",
+        "noParameterAssign": "error",
+        "noUselessElse": "error",
+        "noYodaExpression": "error",
+        "useAsConstAssertion": "error",
+        "useBlockStatements": "error",
+        "useCollapsedElseIf": "error",
+        "useCollapsedIf": "error",
+        "useConsistentArrayType": { "level": "error", "options": { "syntax": "shorthand" } },
+        "useConsistentBuiltinInstantiation": "error",
+        "useConst": "error",
+        "useDefaultParameterLast": "error",
+        "useDefaultSwitchClause": "error",
+        "useExplicitLengthCheck": "error",
+        "useExponentiationOperator": "error",
+        "useExportType": "error",
+        "useForOf": "error",
+        "useImportType": "error",
+        "useNumberNamespace": "error",
+        "useShorthandAssign": "error",
+        "useSingleVarDeclarator": "error",
+        "useTemplate": "error",
+        "useThrowNewError": "error",
+        "useThrowOnlyError": "error",
+        // Reordering CSS rules changes the cascade, and there are no visual regression tests
+        "noDescendingSpecificity": "off"
+      },
+      "suspicious": {
+        "noConsole": { "level": "error", "options": { "allow": ["error", "warn"] } },
+        "noEmptyBlockStatements": "error",
+        "noExplicitAny": "error",
+        "noShadow": "error",
+        "noVar": "error",
+        "useAwait": "error",
+        "useErrorMessage": "error",
+        "useGuardForIn": "error",
+        "useStrictMode": "error",
+        // Input sanitizers match control characters on purpose
+        "noControlCharactersInRegex": "off",
+        // `== null` deliberately matches both null and undefined
+        "noEqualsToNull": "off",
+        // Hashing and integer coercion (`| 0`)
+        "noBitwiseOperators": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // Command-line tools and build scripts print to the terminal
+      "includes": ["scripts/**", "tools/**"],
+      "linter": { "rules": { "suspicious": { "noConsole": "off" } } }
+    }
+  ]
+}

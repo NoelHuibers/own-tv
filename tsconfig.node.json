@@ -1,0 +1,16 @@
+{
+  // The TV helpers (native/, CommonJS on the TV's Node 20.12), the host tools (tools/),
+  // scripts and tests. Emitted file-for-file to build/node; the tests run that output.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023"],
+    "module": "node16",
+    "moduleResolution": "node16",
+    "types": ["node"],
+    "rootDir": ".",
+    "outDir": "build/node",
+    "newLine": "lf"
+  },
+  "include": ["native/**/*", "tools/**/*", "scripts/**/*", "tests/**/*"]
+}

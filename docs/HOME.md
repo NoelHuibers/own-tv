@@ -18,9 +18,9 @@ their own tests before widening the gate. First install the app and enable the
 ordinary Home router:
 
 ```sh
-python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room install
-python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room home-enable
-python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room home-direct-enable
+pnpm tv --ssh-config /path/to/private/ssh_config --host living-room install
+pnpm tv --ssh-config /path/to/private/ssh_config --host living-room home-enable
+pnpm tv --ssh-config /path/to/private/ssh_config --host living-room home-direct-enable
 ```
 
 Settings → About → TV & system details also provides the Direct Home switch.
@@ -31,9 +31,9 @@ already playing, activation, rollback and recovery preserve its foreground.
 
 ```sh
 # Keep Own TV, return to foreground routing:
-python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room home-direct-disable
+pnpm tv --ssh-config /path/to/private/ssh_config --host living-room home-direct-disable
 # Restore LG Home fully, before uninstalling:
-python3 tools/tv.py --ssh-config /path/to/private/ssh_config --host living-room home-restore
+pnpm tv --ssh-config /path/to/private/ssh_config --host living-room home-restore
 ```
 
 ## What runs

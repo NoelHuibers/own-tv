@@ -23,7 +23,7 @@
     <header class="top" id="top"></header>
     <main class="main" id="main">
       <section class="apps" id="apps" aria-label="Apps"></section>
-      <div class="shelf" id="shelf" role="region" aria-label="At a glance"></div>
+      <section class="shelf" id="shelf" aria-label="At a glance"></section>
     </main>
   </div>
 
@@ -83,13 +83,8 @@
     </defs>
   </svg>
 
-  <!-- Parent-owned hardware bridge (exposes window.OwnTVBridge). Absent in plain browsers. -->
-  <script src="bridge.js"></script>
-  <script src="order.js"></script>
-  <script src="solar.js"></script>
-  <script src="i18n.js"></script>
-  <script src="weather-map.js"></script>
-  <script src="weather-view.js"></script>
+  <!-- The dashboard and its TV bridge, bundled from app/main.ts. The computer editor and
+       Direct Home insert their runtime script immediately before this tag. -->
   <script src="app.js"></script>
 </body>
 </html>

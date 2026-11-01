@@ -14,10 +14,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  # Pinned so a new ruff release can't fail an unrelated pull request
-  RUFF_VERSION: 0.17.3
-
 jobs:
   # Whether a pull request changes more than docs. A docs-only one (*.md, LICENSE) skips the
   # lints, tests and builds below. Skipped jobs count as passed, and the CI gate at the end
@@ -62,15 +58,19 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      # The pnpm version of packageManager in package.json
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - name: JavaScript (ESLint)
-        run: npx eslint . --max-warnings 0
-      - name: Python (ruff)
-        run: pipx run "ruff==$RUFF_VERSION" check --output-format github .
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # Lint rules and formatting; any diagnostic, warnings included, fails
+      - name: TypeScript, CSS and JSON (Biome)
+        run: pnpm lint
+      # The TV helpers and host tools, the dashboard, and the browser tests
+      - name: Types (tsc)
+        run: pnpm typecheck
       # The TV's Homebrew boot hooks run under BusyBox sh
       - name: Boot hooks (ShellCheck)
         run: shellcheck --shell=sh --format=gcc tools/10-own-tv-ssh tools/15-own-tv-optional-services tools/40-own-tv-permission tools/60-own-tv-home
@@ -80,46 +80,26 @@ jobs:
             node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$f" || { echo "::error file=$f::Invalid JSON"; exit 1; }
           done
 
-  # Node 20.12 is what the TV runs (webOS 11); the newest LTS is what a computer running the
-  # tools likely has.
+  # On the TV's own Node (.node-version: webOS 11 ships 20.12.2)
   test-node:
-    name: Test (Node ${{ matrix.node }})
+    name: Test (Node)
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['20.12', '24']
     steps:
       - uses: actions/checkout@v7
+      # The pnpm version of packageManager in package.json
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run test:node
-
-  # The host tools support Python 3.10 and newer
-  test-python:
-    name: Test (Python ${{ matrix.python }})
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ['3.10', '3.13']
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Compile
-        run: python -m py_compile tools/*.py tests/*.py
-      - run: python -m unittest discover -s tests -p '*.py' -v
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: node --version
+      # Compiles with tsc, then runs the compiled tests: the TV helpers, the host tools and
+      # the dashboard's pure modules
+      - run: pnpm test
 
   coverage:
     name: Coverage
@@ -129,13 +109,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      # The pnpm version of packageManager in package.json
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci --ignore-scripts
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       # Writes the per-area and per-file tables to the job summary; fails on a drop
-      - run: npm run coverage
+      - run: pnpm coverage
       # Also when the baseline check failed, the report shows which lines lost their tests
       - if: always()
         uses: actions/upload-artifact@v7
@@ -152,13 +134,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      # The pnpm version of packageManager in package.json
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          python-version: '3.13'
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build
       - id: build
         name: Build the IPK
         run: |
-          ipk=$(python tools/package.py)
+          ipk=$(node build/node/tools/package.mjs)
           echo "path=$ipk" >> "$GITHUB_OUTPUT"
           {
             echo "## Package"
@@ -181,24 +168,27 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+      # The pnpm version of packageManager in package.json
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
-          cache: npm
-      - run: npm ci --ignore-scripts
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
         id: browsers
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - if: steps.browsers.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
       - if: steps.browsers.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: pnpm exec playwright install-deps chromium
+      # Builds the dashboard bundle, then tests it in Chromium
       - name: Browser tests (1080p and 720p)
-        run: npm run test:e2e
+        run: pnpm test:e2e
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
@@ -213,7 +203,7 @@ jobs:
   gate:
     name: CI
     if: always()
-    needs: [changes, lint, test-node, test-python, coverage, package, e2e]
+    needs: [changes, lint, test-node, coverage, package, e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

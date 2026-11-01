@@ -1,6 +1,6 @@
 # Private integrations
 
-Run `python3 tools/editor.py --ssh-config /path/to/private/ssh_config --host living-room`.
+Run `pnpm editor --ssh-config /path/to/private/ssh_config --host living-room`.
 Open the printed loopback URL and add `/integrations` for private setup. The
 computer sends the configuration over SSH; no feed appears in the repository,
 app package or exported appearance settings. Keep that local editor private.
