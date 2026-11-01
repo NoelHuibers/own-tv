@@ -18,9 +18,10 @@ async function resolvePublic(host,resolver=dns.promises.lookup){
  if(!entries.length||entries.some(e=>!publicAddress(e.address)))throw Error('Calendar host must resolve to a public internet address.');
  return entries;
 }
-async function fetchCalendar(value,redirects=0){
+async function fetchCalendar(value,redirects=0,expiresAt=Date.now()+15000){
+ if(Date.now()>=expiresAt)throw Error('Calendar provider timed out.');
  const u=new URL(feedUrl(value)),host=u.hostname.replace(/^\[|\]$/g,'');
- let timer;const entries=await Promise.race([resolvePublic(host),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Calendar DNS timed out.')),10000);})]).finally(()=>clearTimeout(timer));
+ let timer;const entries=await Promise.race([resolvePublic(host),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Calendar DNS timed out.')),Math.min(10000,Math.max(1,expiresAt-Date.now())));})]).finally(()=>clearTimeout(timer));
  return new Promise((resolve,reject)=>{
   const lookup=(_,options,cb)=>options.all?cb(null,entries):cb(null,entries[0].address,entries[0].family);
   const req=https.get(u,{lookup,timeout:15000,headers:{Accept:'text/calendar'}},res=>{
@@ -28,14 +29,14 @@ async function fetchCalendar(value,redirects=0){
     res.resume();if(redirects>=3||!res.headers.location)return reject(Error('Calendar redirects could not be followed.'));
     let next;try{next=new URL(res.headers.location,u).href;}catch{return reject(Error('Invalid calendar redirect.'));}
     // Validate and pin DNS separately for every redirect, without forwarding credentials.
-    resolve(fetchCalendar(next,redirects+1));return;
+    resolve(fetchCalendar(next,redirects+1,expiresAt));return;
    }
    if(res.statusCode!==200){res.resume();return reject(Error('Calendar provider returned HTTP '+res.statusCode));}
    const chunks=[];let size=0;res.on('data',chunk=>{size+=chunk.length;if(size>2000000)req.destroy(Error('Calendar feed is too large.'));else chunks.push(chunk);});
    res.on('error',()=>reject(Error('Calendar connection failed.')));
    res.on('end',()=>{const text=Buffer.concat(chunks).toString('utf8');if(!/^\s*BEGIN:VCALENDAR\b/.test(text))return reject(Error('This link did not return an ICS calendar.'));resolve(text);});
   });
-  const deadline=setTimeout(()=>req.destroy(Error('Calendar download timed out.')),20000);req.on('close',()=>clearTimeout(deadline));
+  const deadline=setTimeout(()=>req.destroy(Error('Calendar download timed out.')),Math.max(1,expiresAt-Date.now()));req.on('close',()=>clearTimeout(deadline));
   req.on('timeout',()=>req.destroy(Error('Calendar provider timed out.')));req.on('error',()=>reject(Error('Calendar connection failed.')));
  });
 }

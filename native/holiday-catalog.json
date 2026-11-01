@@ -1,0 +1,437 @@
+{
+  "provider": "Thunderbird",
+  "source": "https://www.thunderbird.net/en-US/calendar/holidays/",
+  "coverage": "2025–2028",
+  "calendars": [
+    {
+      "id": "tb-albania",
+      "name": "Albania",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/AlbaniaHolidays.ics"
+    },
+    {
+      "id": "tb-algeria-arabic",
+      "name": "Algeria (Arabic)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/AlgeriaHolidaysArabic.ics"
+    },
+    {
+      "id": "tb-algeria-french",
+      "name": "Algeria (French)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/AlgeriaHolidays.ics"
+    },
+    {
+      "id": "tb-argentina",
+      "name": "Argentina",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/ArgentinaHolidays.ics"
+    },
+    {
+      "id": "tb-armenia",
+      "name": "Armenia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/ArmeniaHolidays.ics"
+    },
+    {
+      "id": "tb-australia",
+      "name": "Australia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/AustraliaHolidays.ics"
+    },
+    {
+      "id": "tb-austrian",
+      "name": "Austrian",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/AustrianHolidays.ics"
+    },
+    {
+      "id": "tb-belgian-dutch",
+      "name": "Belgian (Dutch)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/BelgianHolidays.ics"
+    },
+    {
+      "id": "tb-belgian-french",
+      "name": "Belgian (French)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/BelgianHolidaysFrench.ics"
+    },
+    {
+      "id": "tb-bolivia",
+      "name": "Bolivia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/BoliviaHolidays.ics"
+    },
+    {
+      "id": "tb-brazil",
+      "name": "Brazil",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/BrazilHolidays.ics"
+    },
+    {
+      "id": "tb-bulgaria",
+      "name": "Bulgaria",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/BulgarianHolidays.ics"
+    },
+    {
+      "id": "tb-canada-english",
+      "name": "Canada (English)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/CanadaHolidays.ics"
+    },
+    {
+      "id": "tb-canada-french",
+      "name": "Canada (French)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/CanadaHolidaysFrench.ics"
+    },
+    {
+      "id": "tb-chile",
+      "name": "Chile",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/ChileHolidays.ics"
+    },
+    {
+      "id": "tb-china",
+      "name": "China",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/ChinaHolidays.ics"
+    },
+    {
+      "id": "tb-colombia",
+      "name": "Colombia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/ColombianHolidays.ics"
+    },
+    {
+      "id": "tb-costa-rica",
+      "name": "Costa Rica",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/CostaRicaHolidays.ics"
+    },
+    {
+      "id": "tb-croatia",
+      "name": "Croatia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/CroatiaHolidays.ics"
+    },
+    {
+      "id": "tb-czech",
+      "name": "Czech",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/CzechHolidays.ics"
+    },
+    {
+      "id": "tb-denmark",
+      "name": "Denmark",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/DenmarkHolidays.ics"
+    },
+    {
+      "id": "tb-dominican-republic",
+      "name": "Dominican Republic",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/DominicanRepublicHolidays.ics"
+    },
+    {
+      "id": "tb-estonia",
+      "name": "Estonia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/EstoniaHolidays.ics"
+    },
+    {
+      "id": "tb-finland-finnish",
+      "name": "Finland (Finnish)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/FinlandHolidays.ics"
+    },
+    {
+      "id": "tb-finland-swedish",
+      "name": "Finland (Swedish)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/FinlandHolidaysSwedish.ics"
+    },
+    {
+      "id": "tb-france",
+      "name": "France",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/FrenchHolidays.ics"
+    },
+    {
+      "id": "tb-germany",
+      "name": "Germany",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/GermanHolidays.ics"
+    },
+    {
+      "id": "tb-greece",
+      "name": "Greece",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/GreeceHolidays.ics"
+    },
+    {
+      "id": "tb-guyana",
+      "name": "Guyana",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/GuyanaHolidays.ics"
+    },
+    {
+      "id": "tb-haiti",
+      "name": "Haiti",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/HaitiHolidays.ics"
+    },
+    {
+      "id": "tb-hong-kong",
+      "name": "Hong Kong",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/HongKongHolidays.ics"
+    },
+    {
+      "id": "tb-hungary",
+      "name": "Hungary",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/HungarianHolidays.ics"
+    },
+    {
+      "id": "tb-iceland",
+      "name": "Iceland",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/IcelandHolidays.ics"
+    },
+    {
+      "id": "tb-india",
+      "name": "India",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/IndiaHolidays.ics"
+    },
+    {
+      "id": "tb-indonesia",
+      "name": "Indonesia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/IndonesiaHolidays.ics"
+    },
+    {
+      "id": "tb-ireland-english",
+      "name": "Ireland (English)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/IrelandHolidays.ics"
+    },
+    {
+      "id": "tb-ireland-irish",
+      "name": "Ireland (Irish)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/IrelandHolidaysIrish.ics"
+    },
+    {
+      "id": "tb-israel",
+      "name": "Israel",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/IsraelHolidays.ics"
+    },
+    {
+      "id": "tb-italy",
+      "name": "Italy",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/ItalianHolidays.ics"
+    },
+    {
+      "id": "tb-japan",
+      "name": "Japan",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/JapanHolidays.ics"
+    },
+    {
+      "id": "tb-kazakhstan",
+      "name": "Kazakhstan",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/KazakhstanHolidaysEnglish.ics"
+    },
+    {
+      "id": "tb-kenya",
+      "name": "Kenya",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/KenyaHolidays.ics"
+    },
+    {
+      "id": "tb-latvia",
+      "name": "Latvia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/LatviaHolidays.ics"
+    },
+    {
+      "id": "tb-lebanon",
+      "name": "Lebanon",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/LebanonHolidays.ics"
+    },
+    {
+      "id": "tb-liechtenstein",
+      "name": "Liechtenstein",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/LiechtensteinHolidays.ics"
+    },
+    {
+      "id": "tb-lithuania",
+      "name": "Lithuania",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/LithuanianHolidays.ics"
+    },
+    {
+      "id": "tb-luxembourg-french",
+      "name": "Luxembourg (French)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/LuxembourgHolidaysFrench.ics"
+    },
+    {
+      "id": "tb-luxembourg-german",
+      "name": "Luxembourg (German)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/LuxembourgHolidaysGerman.ics"
+    },
+    {
+      "id": "tb-malaysia",
+      "name": "Malaysia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/MalaysiaHolidays.ics"
+    },
+    {
+      "id": "tb-malta",
+      "name": "Malta",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/MaltaHolidays.ics"
+    },
+    {
+      "id": "tb-mexico",
+      "name": "Mexico",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/MexicoHolidays.ics"
+    },
+    {
+      "id": "tb-morocco",
+      "name": "Morocco",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/MoroccoHolidays.ics"
+    },
+    {
+      "id": "tb-namibia",
+      "name": "Namibia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/NamibiaHolidays.ics"
+    },
+    {
+      "id": "tb-netherlands-dutch",
+      "name": "Netherlands (Dutch)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/DutchHolidays.ics"
+    },
+    {
+      "id": "tb-netherlands-english",
+      "name": "Netherlands (English)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/DutchHolidaysEnglish.ics"
+    },
+    {
+      "id": "tb-netherlands-french",
+      "name": "Netherlands (French)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/DutchHolidaysFrench.ics"
+    },
+    {
+      "id": "tb-netherlands-german",
+      "name": "Netherlands (German)",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/DutchHolidaysGerman.ics"
+    },
+    {
+      "id": "tb-new-zealand",
+      "name": "New Zealand",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/NewZealandHolidays.ics"
+    },
+    {
+      "id": "tb-nicaragua",
+      "name": "Nicaragua",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/NicaraguaHolidays.ics"
+    },
+    {
+      "id": "tb-norway",
+      "name": "Norway",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/NorwegianHolidays.ics"
+    },
+    {
+      "id": "tb-pakistan",
+      "name": "Pakistan",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/PakistanHolidays.ics"
+    },
+    {
+      "id": "tb-peru",
+      "name": "Peru",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/PeruHolidays.ics"
+    },
+    {
+      "id": "tb-philippines",
+      "name": "Philippines",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/PhilippinesHolidays.ics"
+    },
+    {
+      "id": "tb-polish",
+      "name": "Polish",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/PolishHolidays.ics"
+    },
+    {
+      "id": "tb-portugal",
+      "name": "Portugal",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/PortugalHolidays.ics"
+    },
+    {
+      "id": "tb-puerto-rico",
+      "name": "Puerto Rico",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/PuertoRicoHolidays.ics"
+    },
+    {
+      "id": "tb-romania",
+      "name": "Romania",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/RomaniaHolidays.ics"
+    },
+    {
+      "id": "tb-russia",
+      "name": "Russia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/RussiaHolidays.ics"
+    },
+    {
+      "id": "tb-singapore",
+      "name": "Singapore",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/SingaporeHolidays.ics"
+    },
+    {
+      "id": "tb-slovakia",
+      "name": "Slovakia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/SlovakHolidays.ics"
+    },
+    {
+      "id": "tb-slovenia",
+      "name": "Slovenia",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/SlovenianHolidays.ics"
+    },
+    {
+      "id": "tb-south-africa",
+      "name": "South Africa",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/SouthAfricaHolidays.ics"
+    },
+    {
+      "id": "tb-south-korea",
+      "name": "South Korea",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/SouthKoreaHolidays.ics"
+    },
+    {
+      "id": "tb-spain",
+      "name": "Spain",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/SpainHolidays.ics"
+    },
+    {
+      "id": "tb-sri-lanka",
+      "name": "Sri Lanka",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/SriLankaHolidays.ics"
+    },
+    {
+      "id": "tb-swedish",
+      "name": "Swedish",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/SwedishHolidays.ics"
+    },
+    {
+      "id": "tb-switzerland",
+      "name": "Switzerland",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/SwissHolidays.ics"
+    },
+    {
+      "id": "tb-taiwan",
+      "name": "Taiwan",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/TaiwanHolidays.ics"
+    },
+    {
+      "id": "tb-thailand",
+      "name": "Thailand",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/ThailandHolidays.ics"
+    },
+    {
+      "id": "tb-trinidad-and-tobago",
+      "name": "Trinidad and Tobago",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/TrinidadandTobagoHolidays.ics"
+    },
+    {
+      "id": "tb-turkey",
+      "name": "Turkey",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/TurkeyHolidays.ics"
+    },
+    {
+      "id": "tb-ukraine",
+      "name": "Ukraine",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/UkraineHolidays.ics"
+    },
+    {
+      "id": "tb-united-kingdom",
+      "name": "United Kingdom",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/UKHolidays.ics"
+    },
+    {
+      "id": "tb-united-states",
+      "name": "United States",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/USHolidays.ics"
+    },
+    {
+      "id": "tb-uruguay",
+      "name": "Uruguay",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/UruguayHolidays.ics"
+    },
+    {
+      "id": "tb-vietnam",
+      "name": "Vietnam",
+      "url": "https://www.thunderbird.net/media/caldata/autogen/VietnamHolidays.ics"
+    }
+  ]
+}

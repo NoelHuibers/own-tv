@@ -6,12 +6,14 @@ const fs = require('node:fs');
 const http = require('node:http');
 const https = require('node:https');
 const path = require('node:path');
-const {expandCalendar, validateIntegrations} = require('./integrations.cjs');
+const {validateIntegrations} = require('./integrations.cjs');
 const firmware=require('./firmware.cjs');
 const {normalizeWeather,searchUrl,forecastUrl,normalizeRadar}=require('./weather.cjs');
 const {parseMemory,releaseIdleApps,applyPreload}=require('./performance.cjs');
 const {spawn}=require('node:child_process');
 const {fetchCalendar}=require('./calendar-feed.cjs');
+const {collectAgenda}=require('./calendar-agenda.cjs');
+const {publicCatalog,changeCalendar}=require('./calendar-settings.cjs');
 const ROOT = process.env.OWN_TV_DATA || '/var/lib/own-tv';
 function read(name, fallback) { try { return JSON.parse(fs.readFileSync(path.join(ROOT, name), 'utf8')); } catch { return fallback; } }
 function write(name, value) {
@@ -75,18 +77,12 @@ async function weatherData(details=false,force=false){
   return {configured:true,city:w.label,error:true,...(details?{location:{latitude:w.latitude,longitude:w.longitude}}:{})};
  }
 }
-async function integrations() {
- const cfg=read('integrations.json',{}), result={calendar:{configured:false,events:[]},weather:{configured:false},smartHome:{configured:false,devices:[]}};
- result.weather=await weatherData(false);
- if(cfg.calendar){
-  result.calendar.configured=true;
-  try {
-   const cached=read('calendar-cache.json',null);
-   const d=cached&&Date.now()-cached.at<15*60*1000?cached:{at:Date.now(),events:expandCalendar(await fetchCalendar(cfg.calendar.feedUrl),new Date(),14,cfg.calendar.busyOnly!==false)};
-   if(d!==cached)write('calendar-cache.json',d);result.calendar.events=d.events;result.calendar.updatedAt=d.at;
-  }catch{result.calendar.error='Calendar unavailable';}
- }
- return result;
+async function integrations(){
+ const cfg=read('integrations.json',{}),old=read('calendar-cache.json',{});
+ const agendaDeadline=Date.now()+45000;
+ const [weather,agenda]=await Promise.all([weatherData(false),collectAgenda(cfg.calendar,old,url=>fetchCalendar(url,0,Math.min(agendaDeadline,Date.now()+15000)))]);
+ if(cfg.calendar&&JSON.stringify(old)!==JSON.stringify(agenda.cache))write('calendar-cache.json',agenda.cache);
+ return {weather,calendar:agenda.calendar,smartHome:{configured:false,devices:[]}};
 }
 function safeApp(id){return typeof id==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$/.test(id);}
 async function cachedGh(name,route,ttl){
@@ -150,6 +146,8 @@ async function main(action, argument) {
  }
 
  if(action==='weather'){const cfg=read('integrations.json',{});const weather=validateIntegrations({weather:argument}).weather;cfg.weather=weather;write('integrations.json',cfg);try{fs.unlinkSync(path.join(ROOT,'weather-cache.json'));}catch{}return {ok:true};}
+ if(action==='calendarCatalog')return publicCatalog(read('integrations.json',{}).calendar);
+ if(action==='calendarSource'){const cfg=read('integrations.json',{});cfg.calendar=changeCalendar(cfg.calendar,argument);write('integrations.json',cfg);return {ok:true};}
  if(action==='configure'){const patch=validateIntegrations(argument),cfg={...read('integrations.json',{}),...patch};for(const name of ['calendar','weather'])if(argument[name]===null)delete cfg[name];write('integrations.json',cfg);for(const name of ['calendar','weather'])if(name in argument)try{fs.unlinkSync(path.join(ROOT,name+'-cache.json'));}catch{}return {ok:true};}
  if(action==='preferences'){if(!argument||typeof argument!=='object'||Array.isArray(argument)||JSON.stringify(argument).length>65536)throw new Error('Invalid preferences');if(argument.schema!==1)throw new Error('Unsupported preference schema');write('preferences.json',argument);return {ok:true,revision:fs.statSync(path.join(ROOT,'preferences.json')).mtimeMs};}
  if(action==='launch'){

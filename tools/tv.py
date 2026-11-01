@@ -52,7 +52,7 @@ class TV:
         # Explicit list: credentials, config files and unrelated node_modules
         # never enter the TV helper deployment or a public release package.
         with tarfile.open(fileobj=bundle,mode='w',format=tarfile.USTAR_FORMAT) as tar:
-            for name in ['helper.cjs','integrations.cjs','firmware.cjs','home-route.cjs','weather.cjs','performance.cjs','calendar-feed.cjs']:tar.add(ROOT/'native'/name,arcname=name)
+            for name in ['helper.cjs','integrations.cjs','firmware.cjs','home-route.cjs','weather.cjs','performance.cjs','calendar-feed.cjs','calendar-agenda.cjs','calendar-settings.cjs','holiday-catalog.json']:tar.add(ROOT/'native'/name,arcname=name)
             tar.add(ROOT/'compatibility/firmware.json',arcname='compatibility/firmware.json')
             build=json.dumps({'version':json.loads((ROOT/'package.json').read_text())['version']}).encode();info=tarfile.TarInfo('build.json');info.size=len(build);info.mode=0o600;tar.addfile(info,io.BytesIO(build))
             dependency=ROOT/'node_modules/ical.js'

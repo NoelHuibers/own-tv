@@ -8,6 +8,13 @@ test('saving or disconnecting a calendar preserves weather, and vice versa',asyn
  await main('configure',{weather});
  await main('configure',{calendar:{feedUrl:'https://calendar.example.com/feed.ics'}});
  let config=JSON.parse(fs.readFileSync(path.join(dir,'integrations.json')));assert.deepEqual(config.weather,weather);assert.equal(config.calendar.busyOnly,true);
+ const {sourceId}=require('../native/calendar-settings.cjs');
+ await main('calendarSource',{id:sourceId(config.calendar),enabled:false});
+ await main('calendarSource',{publicId:'tb-germany',enabled:true});
+ config=JSON.parse(fs.readFileSync(path.join(dir,'integrations.json')));assert.deepEqual(config.weather,weather);assert.equal(config.calendar.feeds[0].enabled,false);assert.equal(config.calendar.feeds.length,2);
+ const catalogue=await main('calendarCatalog');assert.equal(catalogue.calendars.find(c=>c.id==='tb-germany').selected,true);assert.ok(!JSON.stringify(catalogue).includes('feed.ics'));
+ await main('calendarSource',{publicId:'tb-germany',enabled:false});
+ config=JSON.parse(fs.readFileSync(path.join(dir,'integrations.json')));assert.equal(config.calendar.feeds.length,1);assert.deepEqual(config.weather,weather);
  await main('configure',{calendar:null});config=JSON.parse(fs.readFileSync(path.join(dir,'integrations.json')));assert.deepEqual(config.weather,weather);assert.equal(config.calendar,undefined);
  await main('configure',{calendar:{feedUrl:'webcal://calendar.example.com/feed.ics'}});await main('configure',{weather:null});
  config=JSON.parse(fs.readFileSync(path.join(dir,'integrations.json')));assert.equal(config.weather,undefined);assert.equal(config.calendar.feedUrl,'https://calendar.example.com/feed.ics');

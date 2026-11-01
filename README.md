@@ -14,7 +14,7 @@ that every launcher feature works there. This project does not root your TV.
 - Ambient, Quiet and Compact styles; day/night appearance with sunrise/sunset, schedule or system switching.
 - Recent-first app favorites (or manual order), optional HDMI inputs, panel hours, health readings and sleep timer.
 - Integrated weather app: current conditions, 24-hour and seven-day forecasts, and observed rain radar.
-- Optional Open-Meteo weather and a read-only calendar agenda (Google, Apple/iCloud, Proton, Outlook, ICS).
+- Optional Open-Meteo weather and a merged read-only calendar agenda (Google, Apple/iCloud, Proton, Outlook, ICS), with individual calendar switches and 86 selectable public holiday calendars.
 - Private computer editor over SSH; integration credentials never enter Git.
 - Default Home routing that catches direct LG Home launches, private backups and explicit rollback.
 - A conservative firmware-compatibility checker; it never installs unverified firmware.

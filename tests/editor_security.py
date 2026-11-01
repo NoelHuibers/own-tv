@@ -6,9 +6,12 @@ import unittest
 import urllib.error
 import urllib.request
 import json
+from unittest.mock import patch
+import subprocess
 from http.server import ThreadingHTTPServer
 spec=importlib.util.spec_from_file_location('editor',Path(__file__).resolve().parents[1]/'tools/editor.py')
 editor=importlib.util.module_from_spec(spec);spec.loader.exec_module(editor)
+REAL_INVOKE=editor.invoke
 class EditorSecurity(unittest.TestCase):
  def setUp(self):
   self.called=[]
@@ -31,4 +34,10 @@ class EditorSecurity(unittest.TestCase):
  def test_same_origin_editor_request_works(self):
   with self.request(self.origin) as r:self.assertTrue(json.load(r)['ok'])
   self.assertEqual(self.called[0][2],'state')
+class TimeoutPrivacy(unittest.TestCase):
+ def test_timeout_does_not_expose_the_ssh_command_or_subscription(self):
+  error=subprocess.TimeoutExpired(['ssh','sensitive-payload'],75)
+  with patch.object(editor.subprocess,'run',side_effect=error):
+   with self.assertRaises(RuntimeError) as cm:REAL_INVOKE('unused','unused','configure',{'calendar':{'feedUrl':'https://calendar.example/secret.ics'}})
+  self.assertNotIn('sensitive-payload',str(cm.exception));self.assertNotIn('secret.ics',str(cm.exception));self.assertIn('timed out',str(cm.exception))
 if __name__=='__main__':unittest.main()

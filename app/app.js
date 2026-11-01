@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '0.2.0';
+  var VERSION = '0.2.1';
   var STORE_KEY = 'owntv.preferences.v1';
   var EXPORT_KIND = 'owntv.preferences';
   var POLL_MS = 60 * 1000;
@@ -293,7 +293,7 @@
       'imp.appKey': 'Ignored an invalid app entry.',
       'imp.sameHours': 'Day and night start at the same time; kept the default schedule.',
 
-      'set.ab.lede': 'What this dashboard is connected to and can do.',
+      'set.ab.lede': 'A home screen you can make your own.',
       'set.ab.bridge': 'Bridge', 'set.ab.mode': 'Mode', 'set.ab.last': 'Last reading',
       'set.ab.never': 'never',
       'set.ab.mode.live': 'Live TV bridge', 'set.ab.mode.none': 'No bridge (browser view)',
@@ -580,7 +580,7 @@
       'imp.appKey': 'Ungültigen App-Eintrag ignoriert.',
       'imp.sameHours': 'Tag und Nacht beginnen zur selben Zeit; Standard-Zeitplan beibehalten.',
 
-      'set.ab.lede': 'Womit dieses Dashboard verbunden ist und was es kann.',
+      'set.ab.lede': 'Ein Startbildschirm, den du selbst gestaltest.',
       'set.ab.bridge': 'Bridge', 'set.ab.mode': 'Modus', 'set.ab.last': 'Letzte Messung',
       'set.ab.never': 'nie',
       'set.ab.mode.live': 'Live-TV-Bridge', 'set.ab.mode.none': 'Keine Bridge (Browseransicht)',
@@ -1218,12 +1218,15 @@
       calendar: isObj(raw.calendar) ? {
         configured: raw.calendar.configured === true,
         error: !!raw.calendar.error,
+        partial: !!raw.calendar.partial,
+        busyOnly: raw.calendar.busyOnly!==false,
+        sources: (list(raw.calendar.sources,16)||[]).map(function(s){return {id:clip(str(s.id)||'',24),name:clip(str(s.name)||'Calendar',60),enabled:s.enabled!==false,catalogId:clip(str(s.catalogId)||'',80),connected:s.connected===true,stale:s.stale===true};}),
         updatedAt: stamp(raw.calendar.updatedAt),
         events: (list(raw.calendar.events, 200) || []).map(function (e) {
           var s = parseWhen(e.start); if (!s) return null;
           var en = parseWhen(e.end);
           var end = en ? en.d : (s.allDay ? new Date(s.d.getFullYear(), s.d.getMonth(), s.d.getDate() + 1) : new Date(s.d.getTime() + 3600000));
-          return { title: clip(e.title === 'Busy' ? t('cal.busy') : str(e.title) || '—', 60), start: s.d, end: end, allDay: s.allDay || e.allDay === true };
+          return { title: clip(e.title === 'Busy' ? t('cal.busy') : str(e.title) || '—', 60), start: s.d, end: end, allDay: s.allDay || e.allDay === true, calendar:clip(str(e.calendar)||'',60) };
         }).filter(Boolean).sort(function (a, b) { return a.start - b.start; })
       } : null,
       weather: isObj(raw.weather) ? {
@@ -1638,7 +1641,7 @@
     var day = withDay ? dayLabel(e.start < now ? now : e.start, now) : null;
     return h('span', { class: 'ev' + (live ? ' ev--now' : '') },
       h('span', { class: 'ev__time' }, day && !sameDay(e.start < now ? now : e.start, now) ? day + ' ' + (e.allDay ? '' : fmtTime(e.start)) : time),
-      h('span', { class: 'ev__title' }, e.title));
+      h('span', { class: 'ev__title',title:e.calendar?e.calendar+' · '+e.title:e.title }, e.title), e.calendar?h('small',{class:'ev__calendar'},e.calendar):null);
   }
   function wCalendar(now) {
     var cal = state.data && state.data.calendar;
@@ -1654,6 +1657,7 @@
     if (rest.length) more.push(h('div', { class: 'w__evs' }, rest.map(function (e) { return evRow(e, now, true); })));
     if (upcoming.length > 6) more.push(h('p', { class: 'w__meta' }, t('cal.more', { n: upcoming.length - 6 })));
     more.push(stampLine);
+    if(cal.partial)more.push(h('p',{class:'w__meta'},prefs.language==='de'?'Einige Kalender sind vorübergehend nicht erreichbar.':'Some calendars are temporarily unavailable.'));
     return glance('calendar', { icon: 'calendar', label: label,
       list: h('span', { class: 'w__evs' }, face.map(function (e) { return evRow(e, now, true); })),
       more: more, action: 'open-settings', arg: 'calendar' });
@@ -1961,17 +1965,60 @@
       h('p', { class: 'note', style: { 'margin-top': '1rem' } }, t('set.wx.how'))];
   }
 
+  var calPanel='agenda', calPage=0, calSearch='', calQuery='', calCatalog=null, calBusy=false, calError=null;
+  function calText(en,de) { return prefs.language==='de'?de:en; }
+  function calendarPages(count,size) {
+    var pages=Math.max(1,Math.ceil(count/size));calPage=Math.min(calPage,pages-1);
+    return pages>1?h('div',{class:'formrow calendar-pages'},
+      h('button',{class:'btn f',type:'button','data-action':'cal-page','data-arg':'-1','data-fid':'cal-prev',disabled:calPage===0},calText('Previous','Zurück')),
+      h('span',{class:'note'},(calPage+1)+' / '+pages),
+      h('button',{class:'btn f',type:'button','data-action':'cal-page','data-arg':'1','data-fid':'cal-next',disabled:calPage===pages-1},calText('Next','Weiter'))):null;
+  }
+  function loadCalendarCatalog() {
+    if(calBusy||!Bridge.has('getCalendarCatalog'))return;
+    calBusy=true;calError=null;renderSettings();
+    Bridge.call('getCalendarCatalog').then(function(r){calCatalog=r;},function(e){calError=errText(e);}).then(function(){calBusy=false;renderSettings();});
+  }
+  function changeCalendarSource(value) {
+    if(calBusy||!Bridge.has('setCalendarSource'))return;
+    calBusy=true;calError=null;renderSettings();
+    Bridge.call('setCalendarSource',[value]).then(function(){
+      var affected=value.publicId||(state.data&&state.data.calendar&&state.data.calendar.sources||[]).filter(function(s){return s.id===value.id;}).map(function(s){return s.catalogId;})[0];
+      if(calCatalog&&affected)calCatalog.calendars.forEach(function(c){if(c.id===affected)c.selected=value.enabled;});
+      return refresh(false);
+    },function(e){calError=errText(e);}).then(function(){calBusy=false;renderSettings();});
+  }
   function secCalendar() {
-    var cal = state.data && state.data.calendar;
-    var status = !cal ? t('set.cal.st.na') : cal.configured ? t('set.cal.st.on', { n: cal.events.filter(function (e) { return e.end > new Date(); }).length }) : t('set.cal.st.off');
-    return [head('calendar'),
-      srow(t('set.cal.status'), null, h('span', { class: 'note' }, h('span', { class: 'dot ' + (cal && cal.configured ? 'dot--ok' : ''), style: { display: 'inline-block', 'margin-right': '0.6rem' } }), status)),
-      h('div', { class: 'callout callout--warn' }, icon('shield'), h('div', { trustedHtml: t('set.cal.warn') })),
-      h('ol', { class: 'steps' }, h('li', null, t('set.cal.s1')), h('li', null, t('set.cal.s2')), h('li', null, t('set.cal.s3'))),
-      h('div', { class: 'formrow' }, Bridge.has('openEditor')
-        ? h('button', { class: 'btn f', type: 'button', 'data-action': 'open-editor', 'data-fid': 'cal-editor' }, icon('sliders'), t('set.cal.editor'))
-        : h('p', { class: 'note' }, t('set.cal.noEditor'))),
-      ui.hints.editor ? h('div', { class: 'callout', role: 'status' }, icon('info'), h('div', null, h('strong', null, t('set.hint.bridgeSays') + ' '), h('span', { class: 'mono' }, ui.hints.editor))) : null];
+    var cal=state.data&&state.data.calendar,sources=cal&&cal.sources||[],now=new Date(),body=[],size=calPanel==='agenda'?6:4;
+    var events=cal&&cal.events.filter(function(e){return e.end>now;})||[];
+    if(calPanel==='agenda') {
+      var paging=calendarPages(events.length,size);
+      body.push(h('p',{class:'note'},calText('The next 14 days · enabled calendars only','Die nächsten 14 Tage · nur eingeschaltete Kalender')));
+      if(events.length)body.push(h('div',{class:'calendar-agenda'},events.slice(calPage*size,(calPage+1)*size).map(function(e){return h('div',{class:'calendar-event'},h('div',{class:'calendar-event__date'},fmtDate(e.start<now?now:e.start,{weekday:'short',day:'numeric',month:'short'}),h('span',null,e.allDay?t('cal.allDay'):fmtTime(e.start)+' – '+fmtTime(e.end))),h('div',null,h('strong',null,e.title),h('small',null,e.calendar)));})));
+      else body.push(h('p',{class:'calendar-empty'},cal&&cal.configured?t('cal.empty'):t('cal.setup.text')));
+      body.push(paging);
+      if(cal&&cal.partial)body.push(h('p',{class:'note',role:'status'},calText('Some calendars are unavailable. Your other calendars are still shown.','Einige Kalender sind nicht erreichbar. Die anderen werden weiterhin angezeigt.')));
+    } else if(calPanel==='sources') {
+      var sourcePages=calendarPages(sources.length,size);
+      body.push(h('p',{class:'note'},calText('Switch off a calendar to hide its events and stop fetching it. Your connection stays saved.','Ausgeschaltete Kalender werden ausgeblendet und nicht abgerufen. Die Verbindung bleibt gespeichert.')));
+      body.push(sources.map(function(source,i){if(i<calPage*size||i>=(calPage+1)*size)return null;return srow(source.name,!source.enabled?calText('Hidden','Ausgeblendet'):source.connected?calText('Connected','Verbunden'):calText('Temporarily unavailable','Vorübergehend nicht erreichbar'),sw('cal-toggle',source.id,source.enabled,source.name,'cal-source:'+source.id));}));
+      if(!sources.length)body.push(h('p',{class:'note'},calText('No calendars connected yet. Add public holidays or connect a private subscription from your computer.','Noch keine Kalender verbunden. Füge Feiertage hinzu oder verbinde ein privates Abonnement am Computer.')));
+      body.push(sourcePages,h('p',{class:'note'},cal&&cal.busyOnly===false?calText('Event titles and times are shown.','Termintitel und Zeiten werden angezeigt.'):calText('Only busy times are shown for private calendars.','Private Kalender zeigen nur Belegt-Zeiten.')));
+      body.push(Bridge.has('openEditor')?h('button',{class:'btn f',type:'button','data-action':'open-editor','data-fid':'cal-editor'},icon('sliders'),t('set.cal.editor')):h('p',{class:'note'},t('set.cal.noEditor')));
+    } else {
+      body.push(h('label',{class:'field'},h('span',null,calText('Find a country or language','Land oder Sprache suchen')),h('input',{type:'search',maxlength:'60',value:calSearch,'data-input':'cal-search','data-fid':'cal-search',placeholder:calText('Search public holidays','Feiertage suchen')})),h('button',{class:'btn f',type:'button','data-action':'cal-find','data-fid':'cal-find'},calText('Search','Suchen')));
+      if(calCatalog&&Array.isArray(calCatalog.calendars)) {
+        var matches=calCatalog.calendars.filter(function(c){return c.name.toLowerCase().indexOf(calQuery.toLowerCase())>=0;}),publicPages=calendarPages(matches.length,size);
+        body.push(h('p',{class:'note'},calCatalog.calendars.length+' '+calText('calendars · Thunderbird ·','Kalender · Thunderbird ·')+' '+calCatalog.coverage));
+        body.push(matches.slice(calPage*size,(calPage+1)*size).map(function(c){return srow(c.name,null,sw('cal-public',c.id,c.selected,c.name,'cal-public:'+c.id));}));
+        if(!matches.length)body.push(h('p',{class:'note'},calText('No matching calendar. You can connect another HTTPS or webcal feed from the private editor.','Kein passender Kalender. Weitere HTTPS- oder webcal-Abonnements kannst du im privaten Editor verbinden.')));
+        body.push(publicPages,h('p',{class:'note'},calText('Only selected calendars connect to the provider. Regional observances can differ; check important dates.','Nur ausgewählte Kalender verbinden sich mit dem Anbieter. Regionale Feiertage können abweichen; prüfe wichtige Termine.')));
+      } else body.push(h('button',{class:'btn f',type:'button','data-action':'cal-catalog','data-fid':'cal-load',disabled:calBusy||!Bridge.has('getCalendarCatalog')},calBusy?calText('Loading…','Wird geladen…'):calText('Load public calendars','Öffentliche Kalender laden')));
+    }
+    return [head('calendar'),seg(calText('Calendar view','Kalenderansicht'),[
+      {action:'cal-panel',arg:'agenda',label:calText('Agenda','Agenda')},{action:'cal-panel',arg:'sources',label:calText('My calendars','Meine Kalender')},{action:'cal-panel',arg:'public',label:calText('Public holidays','Feiertage')}],calPanel,'cal-panel'),
+      h('div',{class:'calendar-panel','aria-busy':String(calBusy)},body),calError?h('p',{class:'callout callout--bad',role:'alert'},calError):null,
+      ui.hints.editor?h('p',{class:'note',role:'status'},ui.hints.editor):null];
   }
 
   function exportPayload() {
@@ -2006,25 +2053,31 @@
       h('div', { class: 'formrow' }, h('button', { class: 'btn btn--danger f', type: 'button', 'data-action': 'prefs-reset', 'data-fid': 'bk-reset' }, icon('refresh'), ui.resetArmed ? t('set.bk.resetConfirm') : t('set.bk.reset')))];
   }
 
-  var firmwareReply = null, firmwareBusy = false, releasingIdle = false, memoryBusy=false;
+  var firmwareReply = null, firmwareBusy = false, releasingIdle = false, memoryBusy=false, aboutDetails=false;
   function secAbout() {
-    var methods = ['getState', 'launch', 'setSleepTimer', 'screenOff', 'openLgHome', 'openSettings', 'savePreferences', 'configureWeather', 'openEditor', 'checkFirmware'];
-    var modeText = Bridge.mode === 'live' ? t('set.ab.mode.live') + (Bridge.via === 'editor' ? ' · ' + t('set.ab.via.editor') : ' · ' + t('set.ab.via.tv')) : Bridge.mode === 'preview' ? t('set.ab.mode.preview') + ' (' + previewKind + ')' : t('set.ab.mode.none');
-    var H = state.data && state.data.health || {}, pv = state.data && state.data.privacy;
-    var fwText = firmwareReply ? t(firmwareReply.catalogueReachable === false ? 'fw.offline' : firmwareReply.eligible ? 'fw.report' : 'fw.unknown') : t('fw.description');
-    return [head('about'), healthDetails(H, pv), H.idleReleaseSupported ? srow(t('h.memoryMode'),t('h.memoryModeNote'),sw('memory-mode','mode',H.lowMemoryMode,t('h.memoryMode'),'memory-mode')) : null, H.idleReleaseSupported ? h('div',{class:'formrow'}, h('button',{class:'btn f',type:'button','data-action':'release-idle','data-fid':'release-idle',disabled:releasingIdle || !Bridge.has('releaseIdleApps')},t(releasingIdle ? 'h.releasing' : 'h.release'))) : null, H.idleReleaseSupported ? h('p',{class:'note'},t('h.releaseNote')) : null, h('div', {class:'formrow'}, h('button', {class:'btn f',type:'button','data-action':'check-firmware','data-fid':'fw-check',disabled:firmwareBusy || !Bridge.has('checkFirmware')}, firmwareBusy ? t('fw.checking') : t('fw.check'))), h('p',{class:'note',role:'status'},fwText),
-      srow(t('set.ab.mode'), null, h('span', { class: 'note' }, modeText)),
-      srow(t('set.ab.last'), null, h('span', { class: 'note' }, state.lastOk ? fmtTime(new Date(state.lastOk)) + ' · ' + fmtDate(new Date(state.lastOk), { day: 'numeric', month: 'short' }) : t('set.ab.never'))),
-      h('h2', { class: 'subhead' }, t('set.ab.caps')),
-      h('div', { class: 'caps' }, methods.map(function (m) {
-        var yes = Bridge.has(m);
-        return h('div', { class: 'cap ' + (yes ? 'cap--yes' : 'cap--no') }, icon(yes ? 'check' : 'x'), h('code', null, m + '()'));
-      })),
-      h('div', { class: 'formrow' }, h('button', { class: 'btn f', type: 'button', 'data-action': 'refresh', 'data-fid': 'ab-refresh' }, icon('refresh'), t('set.ab.refresh'))),
-      h('h2', { class: 'subhead' }, t('set.ab.keys')),
-      h('ul', { class: 'steps' }, ['k1', 'k2', 'k3', 'k4', 'k6', 'k5'].map(function (k) { return h('li', null, t('set.ab.' + k)); })),
-      h('p', { class: 'note', style: { 'margin-top': '1.2rem' } }, t('set.ab.storage', { key: STORE_KEY })),
-      h('p', { class: 'note' }, t('set.ab.version', { v: VERSION }))];
+    var H=state.data&&state.data.health||{},pv=state.data&&state.data.privacy,cal=state.data&&state.data.calendar,wx=state.data&&state.data.weather;
+    var count=cal&&cal.sources?cal.sources.filter(function(s){return s.enabled;}).length:0;
+    var fwText=firmwareReply?t(firmwareReply.catalogueReachable===false?'fw.offline':firmwareReply.eligible?'fw.report':'fw.unknown'):t('fw.description');
+    return [head('about'),
+      h('div',{class:'about-identity'},h('strong',null,'own/tv'),h('span',{class:'note'},'v'+VERSION+' · '+calText('Open source · MIT','Open Source · MIT'))),
+      h('p',{class:'about-copy'},calText('An independent home screen for LG webOS. Your apps up front, an atmosphere that follows your day, and useful details close by. Make it yours in Settings.','Ein unabhängiger Startbildschirm für LG webOS. Deine Apps im Mittelpunkt, eine Atmosphäre passend zum Tag und nützliche Details in Reichweite. Passe ihn in den Einstellungen an.')),
+      h('h2',{class:'subhead'},calText('Your data stays yours','Deine Daten bleiben deine')),
+      h('p',{class:'note'},calText('No Own TV account, advertising or analytics. Preferences and subscription links are stored on your TV. Calendar access is read-only; passwords are never needed. Appearance exports exclude calendar links and events.','Kein Own-TV-Konto, keine Werbung und keine Analyse. Einstellungen und Abonnement-Links bleiben auf deinem Fernseher. Kalenderzugriff ist nur lesend und benötigt kein Passwort. Design-Exporte enthalten keine Kalender-Links oder Termine.')),
+      h('p',{class:'note'},calText('When enabled, weather and calendar providers receive the requests needed for those features. Your selected weather location is sent to Open-Meteo. Streaming apps and LG services have their own privacy settings.','Aktivierte Wetter- und Kalenderanbieter erhalten die für diese Funktionen nötigen Anfragen. Dein gewählter Wetterort wird an Open-Meteo gesendet. Streaming-Apps und LG-Dienste haben eigene Datenschutzeinstellungen.')),
+      h('h2',{class:'subhead'},calText('Connected here','Hier verbunden')),
+      srow(calText('Dashboard','Dashboard'),null,h('span',{class:'note'},Bridge.mode==='live'?calText('Connected to TV','Mit Fernseher verbunden'):Bridge.mode==='preview'?calText('Sample preview','Beispielvorschau'):calText('Not connected','Nicht verbunden'))),
+      srow(t('set.nav.weather'),null,h('span',{class:'note'},wx&&wx.configured?wx.city||calText('Enabled','Aktiv'):calText('Off','Aus'))),
+      srow(t('set.nav.calendar'),null,h('span',{class:'note'},count+' '+calText('calendars enabled','Kalender aktiv'))),
+      h('button',{class:'btn f',type:'button','data-action':'about-details','data-fid':'about-details','aria-expanded':String(aboutDetails)},calText('TV & system details','TV- und Systemdetails')),
+      aboutDetails?h('div',{class:'about-system'},healthDetails(H, pv), H.idleReleaseSupported ? srow(t('h.memoryMode'),t('h.memoryModeNote'),sw('memory-mode','mode',H.lowMemoryMode,t('h.memoryMode'),'memory-mode')) : null, H.idleReleaseSupported ? h('div',{class:'formrow'}, h('button',{class:'btn f',type:'button','data-action':'release-idle','data-fid':'release-idle',disabled:releasingIdle || !Bridge.has('releaseIdleApps')},t(releasingIdle ? 'h.releasing' : 'h.release'))) : null, H.idleReleaseSupported ? h('p',{class:'note'},t('h.releaseNote')) : null, h('div', {class:'formrow'}, h('button', {class:'btn f',type:'button','data-action':'check-firmware','data-fid':'fw-check',disabled:firmwareBusy || !Bridge.has('checkFirmware')}, firmwareBusy ? t('fw.checking') : t('fw.check'))), h('p',{class:'note',role:'status'},fwText),
+        srow(t('set.ab.last'),null,h('span',{class:'note'},state.lastOk?fmtTime(new Date(state.lastOk)):t('set.ab.never'))),
+        h('button',{class:'btn f',type:'button','data-action':'refresh','data-fid':'ab-refresh'},icon('refresh'),t('set.ab.refresh'))):null,
+      h('h2',{class:'subhead'},t('set.ab.keys')),
+      h('ul',{class:'steps'},['k1','k2','k3','k4','k6','k5'].map(function(k){return h('li',null,t('set.ab.'+k));})),
+      h('h2',{class:'subhead'},calText('Built in the open','Offen entwickelt')),
+      h('p',{class:'note'},'github.com/NoelHuibers/own-tv'),
+      h('p',{class:'note'},calText('Weather: Open-Meteo · Radar: RainViewer · Map: Natural Earth · Calendar: ical.js · Holiday catalogue: Thunderbird.','Wetter: Open-Meteo · Radar: RainViewer · Karte: Natural Earth · Kalender: ical.js · Feiertagskatalog: Thunderbird.')),
+      h('p',{class:'note'},calText('Independent of LG. TV controls require rooted webOS and Homebrew Channel. Firmware compatibility checks never install an update automatically.','Unabhängig von LG. TV-Steuerung benötigt gerootetes webOS und Homebrew Channel. Firmware-Kompatibilitätsprüfungen installieren niemals automatisch ein Update.'))];
   }
 
   function renderSettings() {
@@ -2281,6 +2334,17 @@
 
   function handle(action, arg, el) {
     switch (action) {
+      case 'cal-panel': calPanel=arg;calPage=0;renderSettings();if(arg==='public'&&!calCatalog)loadCalendarCatalog();break;
+      case 'cal-catalog': loadCalendarCatalog();break;
+      case 'cal-find': calQuery=calSearch.trim();calPage=0;renderSettings();break;
+      case 'cal-page': calPage=Math.max(0,calPage+Number(arg));renderSettings();break;
+      case 'cal-toggle':
+        var source=(state.data&&state.data.calendar&&state.data.calendar.sources||[]).filter(function(s){return s.id===arg;})[0];
+        if(source)changeCalendarSource({id:arg,enabled:!source.enabled});break;
+      case 'cal-public':
+        var publicCal=calCatalog&&calCatalog.calendars.filter(function(c){return c.id===arg;})[0];
+        if(publicCal)changeCalendarSource({publicId:arg,enabled:!publicCal.selected});break;
+      case 'about-details': aboutDetails=!aboutDetails;renderSettings();break;
       case 'memory-mode':
         if(memoryBusy)break;memoryBusy=true;
         act('setMemoryMode',[!(state.data&&state.data.health&&state.data.health.lowMemoryMode)],t('h.memoryMode'),function(r){if(state.data&&state.data.health)state.data.health.lowMemoryMode=r.enabled===true;renderSettings();}).then(function(){memoryBusy=false;refresh(true);});
@@ -2492,6 +2556,8 @@
     } else if (key.indexOf('wx-') === 0) {
       ui.wxDraft = ui.wxDraft || { label: '', lat: '', lon: '' };
       ui.wxDraft[key.slice(3)] = e.target.value;
+    } else if (key === 'cal-search') {
+      calSearch=e.target.value;
     } else if (key === 'import-text') {
       ui.importText = e.target.value;
     }
