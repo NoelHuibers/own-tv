@@ -7,20 +7,22 @@
  function svgIcon(name){var s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('class','icon');s.setAttribute('aria-hidden','true');var u=document.createElementNS(s.namespaceURI,'use');u.setAttribute('href','#i-'+name);s.appendChild(u);return s;}
  function iconCode(code,day){if(typeof code!=='number')return 'info';return code===0||code===1?(day===false?'moon':'sun'):code===2||code===3?'cloud':code===45||code===48?'fog':code>=71&&code<=77||code===85||code===86?'snow':code>=95?'storm':code>=51?'rain':'cloud';}
  function create(ctx){
-  var host=ctx.host,words=ctx.language==='de'?DE:EN,lang=ctx.language==='de'?'de-DE':'en-GB';
+  var host=ctx.host,words=ctx.language.split('-')[0]==='de'?DE:EN,lang=ctx.language==='en'?'en-GB':ctx.language;
   var data=null,busy=false,tab='today',selectedDay=0,dead=false,generation=0;
   var radar=null,radarBusy=false,radarError=false,mapData=null,mapPromise=null,mapScript=null,canvas=null,base=null,coverage=null,shown=null;
   var drag=null,suppressMapClick=false;
   var zoom=6,center=null,frameIndex=0,shownIndex=-1,playing=false,playTimer=null,paintTimer=null,metadataTimer=null,forecastTimer=null,serial=0,images=new Map(),requests=[],mapPan=false;
-  function t(k){return words[k]||EN[k]||k;}
+  function t(k){var fallback=words[k]||EN[k]||k;return ctx.translate?ctx.translate('weather:'+k,fallback):fallback;}
+  function text(en,de){var fallback=ctx.language.split('-')[0]==='de'?de:en;return ctx.translate?ctx.translate('text:'+en,fallback):fallback;}
   function num(v,d){return typeof v==='number'&&isFinite(v)?v.toLocaleString(lang,{maximumFractionDigits:d||0}):'—';}
   function time(v){try{return new Intl.DateTimeFormat(lang,{hour:'2-digit',minute:'2-digit',timeZone:data&&data.timezone||undefined}).format(new Date(v));}catch{return '—';}}
   function day(v,long){try{return new Intl.DateTimeFormat(lang,{weekday:long?'long':'short',day:'numeric',month:'short',timeZone:data&&data.timezone||undefined}).format(new Date(v));}catch{return '—';}}
-  function condition(code){if(typeof code!=='number')return '—';var en=['Clear','Mostly clear','Partly cloudy','Overcast'],de=['Klar','Überwiegend klar','Teils bewölkt','Bedeckt'];if(code>=0&&code<=3)return(ctx.language==='de'?de:en)[code];return ctx.language==='de'?(code>=95?'Gewitter':code>=71&&code<=77||code===85||code===86?'Schnee':code>=51?'Regen':code===45||code===48?'Nebel':'Wetter'):(code>=95?'Thunderstorm':code>=71&&code<=77||code===85||code===86?'Snow':code>=51?'Rain':code===45||code===48?'Fog':'Weather');}
+  function condition(code){if(typeof code!=='number')return '—';if(code>=0&&code<=3)return [text('Clear','Klar'),text('Mostly clear','Überwiegend klar'),text('Partly cloudy','Teils bewölkt'),text('Overcast','Bedeckt')][code];return code>=95?text('Thunderstorm','Gewitter'):code>=71&&code<=77||code===85||code===86?text('Snow','Schnee'):code>=51?text('Rain','Regen'):code===45||code===48?text('Fog','Nebel'):t('title');}
+
   function button(action,text,extra){return el('button',Object.assign({type:'button',class:'wx-btn','data-wx':action},extra||{}),text);}
   function metric(label,value){return el('div',{class:'wx-metric'},[el('dt',{},label),el('dd',{},value)]);}
   function reading(value,unit){return num(value,unit==='mm'?1:0)+(value==null?'':' '+unit);}
-  function credit(){if(ctx.preview)return el('footer',{class:'wx-credit'},ctx.language==='de'?'Beispieldaten · keine TV-Daten':'Sample data · no TV data');return el('footer',{class:'wx-credit'},[el('a',{href:'https://open-meteo.com/','data-source':'forecast',target:'_blank',rel:'noopener',tabindex:'-1'},t('source')),el('span',{},data&&data.updatedAt?t('updated')+' '+time(data.updatedAt):''),data&&data.error?el('span',{class:'wx-warning'},t('stale')):null]);}
+  function credit(){if(ctx.preview)return el('footer',{class:'wx-credit'},text('Sample data · no TV data','Beispieldaten · keine TV-Daten'));return el('footer',{class:'wx-credit'},[el('a',{href:'https://open-meteo.com/','data-source':'forecast',target:'_blank',rel:'noopener',tabindex:'-1'},t('source')),el('span',{},data&&data.updatedAt?t('updated')+' '+time(data.updatedAt):''),data&&data.error?el('span',{class:'wx-warning'},t('stale')):null]);}
   function render(){
    if(dead)return;
    var active=host.contains(document.activeElement)?document.activeElement.getAttribute('data-wx-key'):null;
@@ -127,7 +129,7 @@
    Promise.all([loadImage(imageUrl(path,false)),mask]).then(function(result){
     if(dead||token!==serial||tab!=='radar')return;shown=result[0];coverage=result[1];shownIndex=frameIndex;draw();
     var stamp=host.querySelector('#wx-frame-time'),age=host.querySelector('#wx-frame-age');if(stamp)stamp.textContent=time(radar.frames[shownIndex].time);if(age)age.textContent=Date.now()-radar.frames[shownIndex].time>1800000?t('old'):'';
-    status(coverage?'':t('noCoverage')+' ('+(ctx.language==='de'?'Maske nicht verfügbar':'mask unavailable')+')');
+    status(coverage?'':t('noCoverage')+' ('+(text('mask unavailable','Maske nicht verfügbar'))+')');
     if(playing)playTimer=setTimeout(function(){showFrame((frameIndex+1)%radar.frames.length);},1000);
    },function(e){if(dead||token!==serial)return;pause();status(t(e.message==='rate'?'rate':shown?'missing':'radarFailed'));});
   }
@@ -151,7 +153,7 @@
   function load(force){
    if(busy)return;busy=true;var token=++generation;render();ctx.call('getWeather',[force===true]).then(function(r){if(dead||token!==generation)return;data=r;busy=false;armForecastRefresh();if(data.location&&!center)center={latitude:Math.max(-85,Math.min(85,data.location.latitude)),longitude:data.location.longitude};render();},function(){if(dead||token!==generation)return;busy=false;if(data)data.error=true;armForecastRefresh();render();});
   }
-  function clicked(e){var source=e.target.closest('[data-source]');if(source&&ctx.onTV){e.preventDefault();ctx.call('openWeatherSource',[source.dataset.source]).catch(function(){status(source.href);});return;}if(e.target===canvas){ctx.onInput();if(suppressMapClick){suppressMapClick=false;return;}mapPan=!mapPan;canvas.setAttribute('aria-pressed',String(mapPan));status(mapPan?(ctx.language==='de'?'Pfeile verschieben · OK oder Zurück beendet':'Arrows pan · OK or Back returns to controls'):'');return;}var b=e.target.closest('[data-wx]');if(!b||b.disabled)return;ctx.onInput();var a=b.dataset.wx;
+  function clicked(e){var source=e.target.closest('[data-source]');if(source&&ctx.onTV){e.preventDefault();ctx.call('openWeatherSource',[source.dataset.source]).catch(function(){status(source.href);});return;}if(e.target===canvas){ctx.onInput();if(suppressMapClick){suppressMapClick=false;return;}mapPan=!mapPan;canvas.setAttribute('aria-pressed',String(mapPan));status(mapPan?(text('Arrows pan · OK or Back returns to controls','Pfeile verschieben · OK oder Zurück beendet')):'');return;}var b=e.target.closest('[data-wx]');if(!b||b.disabled)return;ctx.onInput();var a=b.dataset.wx;
    if(a==='close'){ctx.onClose();return;}if(a==='location'){ctx.onSetup();return;}
    if(a==='refresh'){clearRadar();radar=null;radarError=false;load(true);return;}
    if(a==='tab'){setTab(b.dataset.tab);return;}
@@ -165,7 +167,7 @@
    var cur=document.activeElement,k=e.keyCode;
    if(k===406){ctx.onSetup();return true;}
    if(cur===canvas){
-    if(k===13){mapPan=!mapPan;canvas.setAttribute('aria-pressed',String(mapPan));status(mapPan?(ctx.language==='de'?'Pfeile verschieben · OK oder Zurück beendet':'Arrows pan · OK or Back returns to controls'):'');return true;}
+    if(k===13){mapPan=!mapPan;canvas.setAttribute('aria-pressed',String(mapPan));status(mapPan?(text('Arrows pan · OK or Back returns to controls','Pfeile verschieben · OK oder Zurück beendet')):'');return true;}
     if(mapPan&&(k===8||k===27||k===461)){mapPan=false;canvas.setAttribute('aria-pressed','false');status('');return true;}
     if(mapPan&&k>=37&&k<=40){var p=world(center.latitude,center.longitude);p.x+=(k===37?-30:k===39?30:0);p.y+=(k===38?-30:k===40?30:0);center=unworld(p);changeMap();return true;}
    }
@@ -182,5 +184,5 @@
   host.setAttribute('aria-label',t('title'));host.hidden=false;load(false);var first=host.querySelector('[data-wx-key="back"]');if(first)first.focus({preventScroll:true});
   return {key:key,suspend:pause,close:function(){dead=true;clearTimeout(forecastTimer);++generation;clearRadar();host.removeEventListener('click',clicked);host.removeEventListener('pointerdown',pointerDown);host.removeEventListener('pointermove',pointerMove);host.removeEventListener('pointerup',pointerUp);host.removeEventListener('pointercancel',pointerUp);document.removeEventListener('visibilitychange',visibility);host.hidden=true;host.textContent='';mapData=null;root.OwnTVMapData=null;if(mapScript)mapScript.remove();},themeChanged:function(){if(canvas)paintBase();}};
  }
- root.OwnTVWeather={create:create};
+ root.OwnTVWeather={create:create,strings:EN};
 }(window));

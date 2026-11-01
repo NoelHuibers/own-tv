@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '0.2.1';
+  var VERSION = '0.2.2';
   var STORE_KEY = 'owntv.preferences.v1';
   var EXPORT_KIND = 'owntv.preferences';
   var POLL_MS = 60 * 1000;
@@ -600,10 +600,11 @@
   };
 
   function t(key, vars) {
-    var lang = (prefs && STRINGS[prefs.language]) ? prefs.language : 'en';
+    var lang=prefs&&prefs.language.split('-')[0]==='de'?'de':'en';
     var s = STRINGS[lang][key];
     if (s === undefined) s = STRINGS.en[key];
     if (s === undefined) s = key;
+    if(prefs)s=OwnTVI18n.translate(prefs.languagePack,prefs.language,key,s);
     if (vars) {
       s = s.replace(/\{(\w+)\}/g, function (m, k) { return vars[k] !== undefined ? String(vars[k]) : m; });
     }
@@ -643,6 +644,7 @@
     return {
       schema: 1,
       language: 'en',
+      languagePack: null,
       name: '',
       style: 'ambient',
       theme: { mode: 'auto', autoSource: 'schedule', dayStart: '07:00', nightStart: '19:30' },
@@ -690,12 +692,13 @@
     rep = rep || { errors: [], warnings: [] };
     var out = defaultPrefs();
     if (!isObj(raw)) { rep.errors.push(t('imp.notObject')); return out; }
-    var known = { schema: 1, language: 1, name: 1, style: 1, theme: 1, motion: 1, idleDimMinutes: 1, pixelShift: 1, apps: 1, widgets: 1, weather: 1 };
+    var known = { schema: 1, language: 1, languagePack: 1, name: 1, style: 1, theme: 1, motion: 1, idleDimMinutes: 1, pixelShift: 1, apps: 1, widgets: 1, weather: 1 };
     Object.keys(raw).forEach(function (k) { if (!known[k]) rep.warnings.push(t('imp.unknown', { key: clip(k, 32) })); });
     function bad(key) { rep.warnings.push(t('imp.invalid', { key: key })); }
     function secret(key) { rep.errors.push(t('imp.secret', { key: key })); }
 
-    if ('language' in raw) { if (raw.language === 'en' || raw.language === 'de') out.language = raw.language; else bad('language'); }
+    if ('language' in raw) { var language=OwnTVI18n.locale(raw.language);if(language)out.language=language;else bad('language'); }
+    if(raw.languagePack){try{out.languagePack=OwnTVI18n.validatePack(raw.languagePack,languageBase(raw.languagePack));}catch(e){rep.errors.push(e.message);}}
     if ('style' in raw) { if (STYLES.indexOf(raw.style) >= 0) out.style = raw.style; else bad('style'); }
     if ('name' in raw) {
       var n = cleanText(raw.name, 24);
@@ -1429,6 +1432,7 @@
     var reduce = prefs.motion === 'reduced' || (mqReduce && mqReduce.matches);
     root.setAttribute('data-motion', reduce ? 'reduced' : 'full');
     root.setAttribute('lang', prefs.language);
+    root.setAttribute('dir',OwnTVI18n.direction(prefs.language));
     document.title = t('doc.title');
   }
   function onMq(mq, fn) { if (!mq) return; if (mq.addEventListener) mq.addEventListener('change', fn); else if (mq.addListener) mq.addListener(fn); }
@@ -1436,8 +1440,8 @@
   /* ======================================================================
      Formatting
      ====================================================================== */
-  function loc() { return prefs.language === 'de' ? 'de-DE' : 'en-GB'; }
-  function fmtTime(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function loc() { return prefs.language==='en'?'en-GB':prefs.language; }
+  function fmtTime(d) { try{return new Intl.DateTimeFormat(loc(),{hour:'2-digit',minute:'2-digit'}).format(d);}catch(e){return pad(d.getHours())+':'+pad(d.getMinutes());} }
   function fmtDate(d, opts) {
     try { return d.toLocaleDateString(loc(), opts || { weekday: 'long', day: 'numeric', month: 'long' }); }
     catch (e) { return d.toDateString(); }
@@ -1657,7 +1661,7 @@
     if (rest.length) more.push(h('div', { class: 'w__evs' }, rest.map(function (e) { return evRow(e, now, true); })));
     if (upcoming.length > 6) more.push(h('p', { class: 'w__meta' }, t('cal.more', { n: upcoming.length - 6 })));
     more.push(stampLine);
-    if(cal.partial)more.push(h('p',{class:'w__meta'},prefs.language==='de'?'Einige Kalender sind vorübergehend nicht erreichbar.':'Some calendars are temporarily unavailable.'));
+    if(cal.partial)more.push(h('p',{class:'w__meta'},calText('Some calendars are temporarily unavailable.','Einige Kalender sind vorübergehend nicht erreichbar.')));
     return glance('calendar', { icon: 'calendar', label: label,
       list: h('span', { class: 'w__evs' }, face.map(function (e) { return evRow(e, now, true); })),
       more: more, action: 'open-settings', arg: 'calendar' });
@@ -1923,12 +1927,29 @@
         { action: 'motion-set', arg: 'reduced', label: t('set.ap.motionReduced') }], prefs.motion, 'mo'))];
   }
 
+  var localeDraft=null,languageError=null;
+  function languageBase(pack) {
+    var base=Object.assign({},STRINGS.en),weather=window.OwnTVWeather&&OwnTVWeather.strings||{};
+    Object.keys(weather).forEach(function(k){base['weather:'+k]=weather[k];});
+    Object.keys(pack&&pack.strings||{}).forEach(function(k){if(k.indexOf('text:')===0)base[k]=k.slice(5);});
+    return base;
+  }
+  function useLanguagePack(text) {
+    try{var pack=OwnTVI18n.validatePack(JSON.parse(text),languageBase(JSON.parse(text)));prefs.languagePack=pack;prefs.language=pack.locale;localeDraft=null;languageError=null;commit();}
+    catch(e){languageError=e.message;renderSettings();}
+  }
   function secLanguage() {
+    var pack=prefs.languagePack,primary=prefs.language.split('-')[0],isBuiltIn=primary==='en'||primary==='de';
+    var count=OwnTVI18n.matches(pack,prefs.language)?Object.keys(pack.strings).length:0;
     return [head('language'),
-      srow(t('set.lang.lang'), null, seg(t('set.lang.lang'), [
-        { action: 'lang-set', arg: 'en', label: 'English' }, { action: 'lang-set', arg: 'de', label: 'Deutsch' }], prefs.language, 'lang')),
-      srow(t('set.lang.name'), t('set.lang.name.d'), h('div', { class: 'field' },
-        h('input', { id: 'f-name', type: 'text', maxlength: '24', autocomplete: 'off', spellcheck: 'false', 'data-input': 'name', 'data-fid': 'f-name', placeholder: t('set.lang.namePh'), 'aria-label': t('set.lang.name'), value: prefs.name })))];
+      srow(t('set.lang.lang'),null,seg(t('set.lang.lang'),[
+        {action:'lang-set',arg:'en',label:'English'},{action:'lang-set',arg:'de',label:'Deutsch'}].concat(pack?[{action:'lang-set',arg:pack.locale,label:pack.name}]:[]),prefs.language,'lang')),
+      h('div',{class:'locale-picker'},h('label',{class:'field'},h('span',null,calText('Any language or regional locale','Beliebige Sprache oder Region')),h('input',{type:'text',maxlength:'64',dir:'ltr',value:localeDraft===null?prefs.language:localeDraft,'data-input':'locale','data-fid':'locale',placeholder:'fr-CA, es, ja, ar, zh-Hant…',autocomplete:'off',spellcheck:'false'})),h('button',{class:'btn f',type:'button','data-action':'locale-apply','data-fid':'locale-apply'},calText('Apply locale','Sprache anwenden'))),
+      h('p',{class:'note',role:'status'},isBuiltIn?calText('Built-in interface translation. Regional date, time and number formats follow your locale.','Integrierte Übersetzung. Datum, Uhrzeit und Zahlen folgen der gewählten Region.'):calText('Offline pack entries: ','Einträge im Offline-Sprachpaket: ')+count+'. '+calText('Missing translations use English. Date, time and number formats follow your locale.','Fehlende Übersetzungen verwenden Englisch. Datum, Uhrzeit und Zahlen folgen der gewählten Sprache.')),
+      h('div',{class:'formrow'},IS_WEBOS?h('p',{class:'note'},calText('Install language packs from the computer editor → Settings → Language.','Installiere Sprachpakete im Computer-Editor → Einstellungen → Sprache.')):h('label',{class:'btn filepick'},icon('upload'),calText('Install language pack','Sprachpaket installieren'),h('input',{type:'file',accept:'application/json,.json','data-input':'language-file','data-fid':'language-file','aria-label':calText('Install language pack','Sprachpaket installieren')})),pack?h('button',{class:'btn f',type:'button','data-action':'language-remove','data-fid':'language-remove'},calText('Remove pack','Sprachpaket entfernen')):null),
+      h('p',{class:'note'},calText('Choose any BCP 47 locale. Packs are local JSON text files; nothing is sent to a translation service. See docs/LANGUAGES.md in the repository to create or contribute one.','Wähle ein beliebiges BCP-47-Sprachkürzel. Pakete sind lokale JSON-Textdateien; nichts wird an einen Übersetzungsdienst gesendet. Die Anleitung steht im Repository unter docs/LANGUAGES.md.')),
+      languageError?h('p',{class:'callout callout--bad',role:'alert'},languageError):null,
+      srow(t('set.lang.name'),t('set.lang.name.d'),h('div',{class:'field'},h('input',{id:'f-name',type:'text',maxlength:'24',autocomplete:'off',spellcheck:'false','data-input':'name','data-fid':'f-name',placeholder:t('set.lang.namePh'),'aria-label':t('set.lang.name'),value:prefs.name})))];
   }
 
   var wxSearch = {busy:false,places:[],error:null}, wxCoordinates=false;
@@ -1966,7 +1987,7 @@
   }
 
   var calPanel='agenda', calPage=0, calSearch='', calQuery='', calCatalog=null, calBusy=false, calError=null;
-  function calText(en,de) { return prefs.language==='de'?de:en; }
+  function calText(en,de) { return OwnTVI18n.translate(prefs.languagePack,prefs.language,'text:'+en,prefs.language.split('-')[0]==='de'?de:en); }
   function calendarPages(count,size) {
     var pages=Math.max(1,Math.ceil(count/size));calPage=Math.min(calPage,pages-1);
     return pages>1?h('div',{class:'formrow calendar-pages'},
@@ -2103,7 +2124,7 @@
     if(weatherView||!window.OwnTVWeather)return;
     if(ui.settingsOpen)closeSettings();
     clearTimeout(pollTimer);$('stage').inert=true;$('stage').setAttribute('aria-hidden','true');
-    weatherView=OwnTVWeather.create({host:$('weather-app'),language:prefs.language,city:(state.data&&state.data.weather&&state.data.weather.city)||prefs.weather.label,preview:Bridge.mode==='preview',onTV:IS_WEBOS,call:function(m,args){return Bridge.call(m,args);},onInput:noteInput,onClose:closeWeather,onSetup:function(){closeWeather();openSettings('weather');}});
+    weatherView=OwnTVWeather.create({host:$('weather-app'),language:prefs.language,city:(state.data&&state.data.weather&&state.data.weather.city)||prefs.weather.label,preview:Bridge.mode==='preview',onTV:IS_WEBOS,translate:function(k,fallback){return OwnTVI18n.translate(prefs.languagePack,prefs.language,k,fallback);},call:function(m,args){return Bridge.call(m,args);},onInput:noteInput,onClose:closeWeather,onSetup:function(){closeWeather();openSettings('weather');}});
   }
   function closeWeather(){
     if(!weatherView)return;weatherView.close();weatherView=null;$('stage').inert=false;$('stage').removeAttribute('aria-hidden');
@@ -2412,7 +2433,12 @@
       case 'idle-set': prefs.idleDimMinutes = parseInt(arg, 10) || 0; commit(); break;
       case 'shift-toggle': prefs.pixelShift = !prefs.pixelShift; if (!prefs.pixelShift) $('stage').style.transform = ''; commit(); break;
       case 'motion-set': prefs.motion = arg; commit(); break;
-      case 'lang-set': prefs.language = arg; commit(); break;
+      case 'lang-set': prefs.language=OwnTVI18n.locale(arg)||'en';localeDraft=null;languageError=null;commit();break;
+      case 'locale-apply':
+        var language=OwnTVI18n.locale(localeDraft===null?prefs.language:localeDraft);
+        if(!language){languageError=calText('Use a valid locale, such as fr-CA, es or ar.','Verwende ein gültiges Sprachkürzel, zum Beispiel fr-CA, es oder ar.');renderSettings();break;}
+        prefs.language=language;localeDraft=null;languageError=null;commit();break;
+      case 'language-remove': prefs.languagePack=null;commit();break;
       case 'widget-toggle': prefs.widgets[arg] = !prefs.widgets[arg]; commit(); break;
 
       case 'app-sort': prefs.apps.sort = arg === 'manual' ? 'manual' : 'recent'; commit(); break;
@@ -2545,6 +2571,7 @@
     var key = e.target.getAttribute && e.target.getAttribute('data-input');
     if (!key) return;
     noteInput();
+    if(key==='locale'){localeDraft=e.target.value;return;}
     if (key === 'name') {
       clearTimeout(nameTimer);
       var target = e.target;
@@ -2564,6 +2591,7 @@
   });
   document.addEventListener('change', function (e) {
     var key = e.target.getAttribute && e.target.getAttribute('data-input');
+    if(key==='language-file'){var languageFile=e.target.files&&e.target.files[0];if(!languageFile)return;if(languageFile.size>65536){languageError='Language pack is too large.';renderSettings();return;}var languageReader=new FileReader();languageReader.onload=function(){useLanguagePack(String(languageReader.result||''));};languageReader.onerror=function(){languageError='Could not read language pack.';renderSettings();};languageReader.readAsText(languageFile);e.target.value='';return;}
     if (key !== 'import-file') return;
     var file = e.target.files && e.target.files[0];
     if (!file) return;

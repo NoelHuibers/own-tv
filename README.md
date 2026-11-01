@@ -1,8 +1,9 @@
 # Own TV
 
 A personal dashboard for rooted LG webOS TVs. Your apps, agenda and TV
-status, with a calm night theme and a warm daytime theme. English first, with
-German available. Local configuration, no Own TV account and no analytics.
+status, with a calm night theme and a warm daytime theme. English and German
+are built in; any locale can use an offline language pack with English fallback.
+Local configuration, no Own TV account and no analytics.
 
 **Initial hardware target:** LG C5, webOS 11.2.0, firmware 43.21.77, Node 20.
 Other models are unverified. A successful SlopBro run on a model is not a guarantee
@@ -11,6 +12,7 @@ that every launcher feature works there. This project does not root your TV.
 ## What it does
 
 - Remote-friendly home dashboard and customization controls.
+- Offline language packs, regional date/time/number formats and right-to-left layouts.
 - Ambient, Quiet and Compact styles; day/night appearance with sunrise/sunset, schedule or system switching.
 - Recent-first app favorites (or manual order), optional HDMI inputs, panel hours, health readings and sleep timer.
 - Integrated weather app: current conditions, 24-hour and seven-day forecasts, and observed rain radar.
@@ -78,6 +80,7 @@ Keep personal profiles, backups and integration files outside this repository.
 - [Security model](SECURITY.md)
 - [Recovery and uninstall](docs/RECOVERY.md)
 - [Private integrations](docs/INTEGRATIONS.md)
+- [Languages and translation packs](docs/LANGUAGES.md)
 - [Weather and radar](docs/WEATHER.md)
 - [LG data deletion](docs/LG-DATA-DELETION.md)
 - [Firmware compatibility policy](docs/FIRMWARE.md)

@@ -962,6 +962,17 @@ html[data-style="compact"] .w--health .w__more { margin-top:0.4rem; }
 .about-identity > strong { font-size:2.8rem; font-weight:500; letter-spacing:-.08em; }
 .about-copy { font-size:1.15rem; line-height:1.6; max-width:44rem; }
 .about-system { padding-top:1rem; }
+.locale-picker { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:1rem; margin:1.2rem 0; }
+.locale-picker .field { display:grid; gap:.5rem; }
+.locale-picker input { width:100%; box-sizing:border-box; }
+html[dir=rtl] .sheet__nav { border-right:0; border-left:.1rem solid var(--rule); padding-left:1.6rem; padding-right:4.8rem; }
+html[dir=rtl] .sheet__body { padding-left:4.8rem; padding-right:3.6rem; }
+html[dir=rtl] .navbtn[aria-current=true]::before { left:auto; right:-.9rem; }
+/* Keep the app rail's physical scroll coordinates stable for the remote. */
+html[dir=rtl] .cards { direction:ltr; }
+html[dir=rtl] .card__cap { direction:rtl; }
+html[dir=rtl] .navbtn,html[dir=rtl] .place,html[dir=rtl] .wx-btn { text-align:start; }
+@media(max-width:640px){.locale-picker{grid-template-columns:minmax(0,1fr);}}
 @media(max-width:600px){.calendar-event{grid-template-columns:7.5rem minmax(0,1fr);gap:.65rem;}}
 
 .ev__calendar { display:none; }

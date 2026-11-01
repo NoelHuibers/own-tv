@@ -70,6 +70,14 @@ launch LG Home directly. It starts at boot and adds no network listener. The
 explicit LG Home button temporarily bypasses that router. If the setting is unsupported, it refuses rather than patching
 system partitions.
 
+Own TV also declares the `home` app category so `launchDefaultApp` can open it
+directly. On the tested C5 firmware, exiting an app still brings LG Home to the
+foreground first, then the router opens Own TV. A brief LG Home flash can remain:
+foreground routing cannot intercept a frame that webOS already displayed.
+Removing it completely would require a separately tested replacement of the
+system Home identity. Own TV does not install that replacement or modify LG's
+Flutter Home files.
+
 Re-run install after updates: the TV regenerates client permissions on each
 install. The scoped permission repair restores only Own TV's Homebrew Channel
 group. The boot hook does the same after reboot.

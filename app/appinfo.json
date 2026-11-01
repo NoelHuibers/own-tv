@@ -1,6 +1,6 @@
 {
   "id": "io.github.noelhuibers.owntv",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "vendor": "Own TV contributors",
   "type": "web",
   "main": "index.html",
@@ -11,5 +11,8 @@
   "iconColor": "#101719",
   "bgColor": "#000000",
   "resolution": "1920x1080",
-  "disableBackHistoryAPI": true
+  "disableBackHistoryAPI": true,
+  "appCategory": [
+    "home"
+  ]
 }
