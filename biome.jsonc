@@ -23,6 +23,9 @@
       "arrowParentheses": "always"
     }
   },
+  // Docs are prose: Biome's Markdown formatter pads every table to its widest cell, which
+  // makes small edits rewrite whole tables. Its Markdown lint rules still run.
+  "markdown": { "formatter": { "enabled": false } },
   "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,

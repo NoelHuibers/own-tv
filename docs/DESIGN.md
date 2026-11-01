@@ -1,14 +1,15 @@
 # Own TV — Dashboard design
 
 The dashboard is a personal home screen for an LG OLED C5 (webOS 11.2, Chromium).
-It is plain HTML, CSS and JavaScript: no framework, no build step, no remote fonts, no
-analytics and no external assets.
+It is HTML, CSS and strict TypeScript bundled by esbuild into one script: no framework,
+no remote fonts, no analytics and no external assets.
 
 ```
-app/index.html   markup shell, CSP, inline SVG icon sprite, loads bridge.js → app.js
+app/index.html   markup shell, CSP, inline SVG icon sprite, loads app.js (the bundle)
 app/styles.css   theme tokens (Night/Day), style families, layout, focus, motion
-app/app.js       state, rendering, colour extraction, D-pad navigation, settings, sync
-app/bridge.js    parent-owned hardware bridge (window.OwnTVBridge) — not part of this design
+app/main.ts      entry point: creates the bridge, then starts the dashboard
+app/app.ts       state, rendering, colour extraction, D-pad navigation, settings, sync
+app/bridge.ts    parent-owned hardware bridge (createBridge) — not part of this design
 ```
 
 ## 1. Concept: media first, details on focus
@@ -214,10 +215,9 @@ One line, at most three at once. Errors last 6 s and use `role=alert`; others la
 Guards:
 
 - **Ignored on the TV.** The parameter is ignored when the UA matches webOS, when
-  `PalmSystem` exists, or when `OwnTVBridge.onTV === true`.
-- **Preview code stays private.** The preview bridge is never assigned to
-  `window.OwnTVBridge`, and `bridge.js` declines to define it off-TV when `?preview=` is
-  present.
+  `PalmSystem` exists, or when the bridge reports `onTV`.
+- **Preview code stays private.** The preview bridge never replaces the real one, and
+  `createBridge()` returns none off-TV when `?preview=` is present.
 - **Clear labelling.** Preview pages carry a hatched amber edge, a "PREVIEW" banner and
   a status pill.
 - **Inert actions.** Actions only toast "Preview: … was not sent anywhere."
@@ -225,7 +225,7 @@ Guards:
 
 ## 8. Bridge contract and preference sync
 
-`window.OwnTVBridge` (parent-owned):
+The bridge from `createBridge()` in `app/bridge.ts` (parent-owned):
 
 ```js
 getState() -> Promise<{
@@ -346,7 +346,7 @@ Calendar says so and explains how to configure the private backend.
 
 ## 12. Verifying
 
-1. Serve: `python3 -m http.server 8765 --bind 127.0.0.1 -d own-tv/app`.
+1. Serve: `pnpm preview` (builds, then serves `build/app` on 127.0.0.1:5173).
 2. `index.html` with no bridge: the "Not live" banner, every widget "unavailable",
    sleep chips disabled.
 3. `?preview=sample` at 1920×1080:

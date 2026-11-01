@@ -6,7 +6,7 @@ If SSH keys already work, keep them and skip the Telnet bootstrap. Otherwise,
 for your own already-rooted TV on a trusted local network:
 
 ```sh
-python3 tools/setup.py --tv YOUR_TV_IP --profile-dir /path/outside/repo/tv-private --bootstrap-telnet
+pnpm bootstrap --tv YOUR_TV_IP --profile-dir /path/outside/repo/tv-private --bootstrap-telnet
 ```
 
 It generates a dedicated SSH key outside the repository, installs only the

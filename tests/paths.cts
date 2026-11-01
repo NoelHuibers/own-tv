@@ -1,5 +1,5 @@
 // Tests run compiled, from build/node/tests; these point back into the repository.
-import path = require('node:path');
+import path from 'node:path';
 
 /** The repository root. */
 export const ROOT = path.resolve(__dirname, '../../..');

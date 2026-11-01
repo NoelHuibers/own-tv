@@ -17,7 +17,7 @@ their original language. Nothing is sent to a translation service.
 Generate a template from the current dashboard, calendar, About and weather text:
 
 ```sh
-node tools/language-template.cjs fr Français > /tmp/own-tv-fr.json
+pnpm --silent language-template fr Français > /tmp/own-tv-fr.json
 ```
 
 Translate the values in `strings`. Keep the keys and `{placeholders}` unchanged.

@@ -21,10 +21,10 @@ function isSolarDay(value: unknown): value is SolarDay {
   if (!value || typeof value !== 'object') {
     return false;
   }
-  const d = value as Record<string, unknown>;
-  return [d.start, d.end, d.sunrise, d.sunset].every(
-    (v) => typeof v === 'number' && Number.isFinite(v),
-  );
+  return (['start', 'end', 'sunrise', 'sunset'] as const).every((key) => {
+    const v: unknown = Reflect.get(value, key);
+    return typeof v === 'number' && Number.isFinite(v);
+  });
 }
 
 /** The local day containing `now`, if the forecast is fresh and its sun times are sane. */
