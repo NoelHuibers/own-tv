@@ -1,0 +1,13 @@
+{
+  // Playwright browser tests; Playwright compiles them itself, tsc only checks types.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023", "dom"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["e2e/**/*.ts", "playwright.config.ts"]
+}

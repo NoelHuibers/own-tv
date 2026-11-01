@@ -1,0 +1,9 @@
+{
+  // Editors pick this up; the build uses the three projects below directly.
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.e2e.json" }
+  ]
+}

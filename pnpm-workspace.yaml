@@ -1,0 +1,5 @@
+# pnpm 12 refuses to install while dependency build scripts are neither allowed nor
+# denied. esbuild's postinstall only verifies its binary, which comes from the
+# platform package (@esbuild/linux-x64 etc.) as an optional dependency.
+allowBuilds:
+  esbuild: false

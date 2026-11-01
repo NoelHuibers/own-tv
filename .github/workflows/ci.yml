@@ -112,7 +112,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.10', '3.13']
+        python: ["3.10", "3.13"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -157,7 +157,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.13'
+          python-version: "3.13"
       - id: build
         name: Build the IPK
         run: |

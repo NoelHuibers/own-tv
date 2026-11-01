@@ -1,0 +1,14 @@
+{
+  // The dashboard. esbuild bundles app/main.ts into one classic script for the TV's
+  // Chromium 132 (webOS 11); tsc only checks types here.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["app/**/*.ts"]
+}

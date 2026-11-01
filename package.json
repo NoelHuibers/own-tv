@@ -6,22 +6,31 @@
   "license": "MIT",
   "scripts": {
     "lint": "biome ci --error-on-warnings .",
-    "test": "pnpm test:node && pnpm test:python",
-    "test:node": "node --test tests/*.test.cjs",
-    "test:python": "python3 -m unittest discover -s tests -p \"*.py\"",
-    "test:e2e": "playwright test",
-    "coverage": "node scripts/coverage.mjs",
-    "check": "pnpm lint && pnpm test && pnpm test:e2e",
-    "preview": "python3 -m http.server 5173 --bind 127.0.0.1 --directory app",
-    "package": "python3 tools/package.py",
-    "format": "biome check --write ."
+    "test": "pnpm build:node && node --test build/node/tests/",
+    "test:e2e": "pnpm build && playwright test",
+    "coverage": "pnpm build:node && node build/node/scripts/coverage.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e",
+    "preview": "pnpm --silent build && node build/node/tools/preview.mjs",
+    "package": "pnpm --silent build && node build/node/tools/package.mjs",
+    "format": "biome check --write .",
+    "build": "pnpm build:node && pnpm build:app",
+    "build:node": "tsc -p tsconfig.node.json",
+    "build:app": "node build/node/scripts/build-app.mjs",
+    "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.app.json && tsc -p tsconfig.e2e.json",
+    "tv": "pnpm --silent build && node build/node/tools/tv.mjs",
+    "editor": "pnpm --silent build && node build/node/tools/editor.mjs",
+    "bootstrap": "pnpm --silent build:node && node build/node/tools/bootstrap.mjs",
+    "language-template": "pnpm --silent build:node && node build/node/tools/language-template.mjs"
   },
   "dependencies": {
     "ical.js": "2.2.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
-    "@playwright/test": "1.64.1"
+    "@playwright/test": "1.64.1",
+    "@types/node": "20.12.14",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": "^20.12.2"
