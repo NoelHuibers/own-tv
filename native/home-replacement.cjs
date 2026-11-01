@@ -79,9 +79,9 @@ function createHomeReplacement(options={}){
    return {ok:true,enabled:true};
   }catch(e){try{await disable('Activation failed: '+e.message);}catch{}throw e;}
  }
- async function disable(reason=null,{keepEnabled=false,launch='ifHome'}={}){
+ async function disable(reason=null,{keepEnabled=false,launch='ifHome',phase=keepEnabled?'escaped':'off'}={}){
   let foreground=null;try{foreground=(await luna('com.webos.applicationManager/getForegroundAppInfo',{})).appId;}catch{}
-  const saved=status();write('state.json',{...saved,enabled:keepEnabled,phase:keepEnabled?'escaped':'off',failure:reason});
+  const saved=status();write('state.json',{...saved,enabled:keepEnabled,phase,failure:reason});
   if(mounted()){
    try{await run('/bin/umount',[appDir],{timeout:4000});}catch{await run('/bin/umount',['-l',appDir],{timeout:4000});}
    if(mounted())throw Error('Could not unmount Own TV Home.');
@@ -93,7 +93,11 @@ function createHomeReplacement(options={}){
   if(launch===true||launch==='ifHome'&&[LG,APP].includes(foreground))await luna('com.webos.applicationManager/launch',{id:LG});
   return {ok:true,enabled:keepEnabled};
  }
+ let homeSince=null;
  async function guard(foreground,power){
+  // Each return to Home (wake from standby, screensaver, another app) restarts
+  // the grace period: the last heartbeat may predate standby by hours.
+  if(foreground!==LG||power!=='Active')homeSince=null;else if(homeSince===null)homeSince=now();
   if(!status().enabled||!mounted())return;
   stopFlutter();
   const saved=status(),lastBeat=read('heartbeat.json',{}).at||0;
@@ -102,7 +106,7 @@ function createHomeReplacement(options={}){
    try{await luna('com.palm.webappmanager/killApp',{appId:APP});}catch{}
    const current=status();if(current.enabled&&current.startedAt===saved.startedAt)write('state.json',{...current,normalClosed:true});
   }
-  if(heartbeatExpired({foreground,power,startedAt:saved.startedAt,lastBeat,now:now()}))await disable('Dashboard heartbeat was lost. LG Home restored.');
+  if(heartbeatExpired({foreground,power,startedAt:Math.max(saved.startedAt,homeSince??0),lastBeat,now:now()}))await disable('Dashboard heartbeat was lost. LG Home restored.');
  }
  async function refresh(){
   if(!status().enabled||!mounted())return {ok:true,refreshed:false};
@@ -112,7 +116,12 @@ function createHomeReplacement(options={}){
   if(foreground.appId===LG)await luna('com.webos.applicationManager/launch',{id:LG});
   return {ok:true,refreshed:true};
  }
+ // After an unexpected router exit: restore LG's identity while the bridge is
+ // down, but stay enabled so the restarted router mounts and launches Own TV
+ // again. Relaunching stock Home here would race that remount and leave SAM
+ // without a foreground window.
+ async function recover(reason){if(!status().enabled)return {ok:true,enabled:false};return disable(reason,{keepEnabled:true,phase:'recovering',launch:false});}
  async function escape({launch=true}={}){fs.writeFileSync(path.join(root,'allow-stock-until'),String(now()+120000),{mode:0o600});return disable(null,{keepEnabled:true,launch});}
- return {status,mounted,token,heartbeat,prepare,enable,disable,guard,escape,stopFlutter,refresh};
+ return {status,mounted,token,heartbeat,prepare,enable,disable,recover,guard,escape,stopFlutter,refresh};
 }
 module.exports={createHomeReplacement,isLgFlutter,heartbeatExpired,LG,APP};

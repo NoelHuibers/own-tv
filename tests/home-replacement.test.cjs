@@ -28,3 +28,31 @@ test('failed registration unmounts and restores Home without restarting SAM',asy
  await home.refresh();assert.equal(calls.filter(c=>c[0].endsWith('/launch')).length,launches);
  await home.disable();assert.equal(mounted,false);assert.equal(home.status().enabled,false);assert.equal(calls.filter(c=>c[0].endsWith('/launch')).length,launches);
 });
+function fakeTv(t,clock){
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'own-home-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+ const source=path.join(dir,'source'),appDir=path.join(dir,'stock'),schemaFile=path.join(dir,'schema.json'),procDir=path.join(dir,'proc');for(const p of [source,appDir,procDir])fs.mkdirSync(p);
+ fs.writeFileSync(path.join(source,'appinfo.json'),JSON.stringify({id:'io.github.noelhuibers.owntv',type:'web'}));fs.writeFileSync(path.join(source,'index.html'),'<script src="bridge.js"></script>');
+ fs.writeFileSync(path.join(appDir,'appinfo.json'),JSON.stringify({id:'com.webos.app.home',type:'flutter'}));fs.writeFileSync(schemaFile,'{}');
+ const tv={mounted:false,foreground:'netflix'};
+ tv.home=createHomeReplacement({root:dir,source,appDir,schemaFile,procDir,assetGroup:process.getgid(),now:()=>clock.now,isMounted:()=>tv.mounted,ping:async()=>{},run:async(file)=>{if(file==='/bin/mount')tv.mounted=true;if(file==='/bin/umount')tv.mounted=false;},luna:async(uri)=>{
+  if(uri.endsWith('/getAppInfo'))return {appInfo:{type:tv.mounted?'web':'flutter',appCategory:['home']}};
+  if(uri.endsWith('/getSystemSettings'))return {settings:{defaultApps:{home:'original'}}};
+  if(uri.endsWith('/getForegroundAppInfo'))return {appId:tv.foreground};
+  if(uri.endsWith('/getPreloadPolicy'))return {applications:[]};return {returnValue:true};
+ }});
+ return tv;
+}
+test('router-crash recovery restores LG identity but keeps Direct Home enabled',async(t)=>{
+ const tv=fakeTv(t,{now:1000});await tv.home.enable({launch:false});assert.equal(tv.mounted,true);
+ await tv.home.recover('router error');assert.equal(tv.mounted,false);assert.equal(tv.home.status().enabled,true);assert.equal(tv.home.status().phase,'recovering');
+ await tv.home.enable({launch:false});assert.equal(tv.mounted,true);assert.equal(tv.home.status().phase,'active');assert.equal(tv.home.status().failure,null);
+ await tv.home.disable();assert.deepEqual(await tv.home.recover('late'),{ok:true,enabled:false});assert.equal(tv.home.status().enabled,false);
+});
+test('waking from standby with an hours-old heartbeat gets a fresh grace period',async(t)=>{
+ const clock={now:1000};const tv=fakeTv(t,clock);await tv.home.enable({launch:false});
+ tv.home.heartbeat({version:'1.0.0',rendered:true});
+ clock.now+=4*3600000;await tv.home.guard('com.webos.app.home','Active Standby');
+ clock.now+=5000;await tv.home.guard('com.webos.app.home','Active');assert.equal(tv.home.status().enabled,true);
+ clock.now+=30000;await tv.home.guard('com.webos.app.home','Active');assert.equal(tv.home.status().enabled,true);
+ clock.now+=31000;await tv.home.guard('com.webos.app.home','Active');assert.equal(tv.home.status().enabled,false);
+});

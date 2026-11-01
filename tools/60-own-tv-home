@@ -9,13 +9,25 @@ if [ "$1" = --supervise ]; then
  trap 'trap - TERM INT; [ -z "$child" ] || kill "$child" 2>/dev/null; rm -f "$PID"; exit 0' TERM INT
  crashes=0
  while :; do
+  started=$(date +%s)
   /usr/bin/node "$FILE" &
   child=$!
   wait "$child"
+  code=$?
   child=
-  /usr/bin/node /var/lib/own-tv/helper.cjs directHome ZmFsc2U= >/dev/null 2>&1
+  echo "$(date) router exited with status $code"
+  # Only rapid repeated exits count; an isolated failure after a healthy run
+  # must not end Direct Home or routing for good.
+  [ $(( $(date +%s) - started )) -lt 600 ] || crashes=0
   crashes=$((crashes + 1))
-  [ "$crashes" -lt 3 ] || break
+  if [ "$crashes" -lt 3 ]; then
+   # Restore LG's identity while the bridge is down; the restarted router
+   # mounts Own TV again.
+   /usr/bin/node /var/lib/own-tv/helper.cjs directHomeRecover >/dev/null 2>&1
+  else
+   /usr/bin/node /var/lib/own-tv/helper.cjs directHome ZmFsc2U= >/dev/null 2>&1
+   break
+  fi
   sleep 2
  done
  rm -f "$PID"

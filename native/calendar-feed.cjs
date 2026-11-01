@@ -23,7 +23,10 @@ async function fetchCalendar(value,redirects=0,expiresAt=Date.now()+15000){
  const u=new URL(feedUrl(value)),host=u.hostname.replace(/^\[|\]$/g,'');
  let timer;const entries=await Promise.race([resolvePublic(host),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Calendar DNS timed out.')),Math.min(10000,Math.max(1,expiresAt-Date.now())));})]).finally(()=>clearTimeout(timer));
  return new Promise((resolve,reject)=>{
-  const lookup=(_,options,cb)=>options.all?cb(null,entries):cb(null,entries[0].address,entries[0].family);
+  // Answer asynchronously: on Node 20 a synchronous answer lets an immediate
+  // connect error (ENETUNREACH while waking from standby) reach the socket
+  // before the request listens, crashing the whole Home router.
+  const lookup=(_,options,cb)=>setImmediate(()=>options.all?cb(null,entries):cb(null,entries[0].address,entries[0].family));
   const req=https.get(u,{lookup,timeout:15000,headers:{Accept:'text/calendar'}},res=>{
    if([301,302,303,307,308].includes(res.statusCode)){
     res.resume();if(redirects>=3||!res.headers.location)return reject(Error('Calendar redirects could not be followed.'));
