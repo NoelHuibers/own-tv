@@ -51,10 +51,13 @@ no token. This avoids adding Homebrew permissions to LG's system app.
 The visible dashboard sends a heartbeat every ten seconds. While Home is in
 front and power is Active, sixty seconds without the first heartbeat, or
 forty-five seconds without a later one, disables Direct Home and restores LG's
-identity. Other apps, screensaver and standby do not trigger that timeout.
+identity. Other apps, screensaver and standby do not trigger that timeout, and
+each return to Home (including waking from standby) restarts the grace period.
 Heartbeat metadata is limited to version, render/connection flags and app-card
 count; it contains no calendar text. An independent shell supervisor restores LG's identity if the Node router
-exits unexpectedly, then restarts ordinary routing. Recovery failures retain
+exits unexpectedly, then restarts the router, which mounts Own TV again. Three
+exits within ten minutes of each start turn Direct Home off and end routing;
+exits are logged to `/var/lib/own-tv/home-route.log`. Recovery failures retain
 the saved state for diagnosis. Only the exact Flutter process launched with
 `-i com.webos.app.home` is stopped; other Flutter apps are preserved.
 

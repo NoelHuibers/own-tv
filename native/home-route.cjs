@@ -37,14 +37,15 @@ async function directForeground(appId){
   if(!observedStock&&Date.now()<Number((()=>{try{return fs.readFileSync(ROOT+'/allow-stock-until','utf8');}catch{return 0;}})()))return true;
  }
  directBusy=true;
- try{try{fs.unlinkSync(ROOT+'/allow-stock-until');}catch{}observedStock=false;const power=await once('com.webos.service.tvpower/power/getPowerState',{});await replacement.enable({launch:power.state==='Active'&&(STOCK.has(appId)||appId===APP)});}
+ try{try{fs.unlinkSync(ROOT+'/allow-stock-until');}catch{}observedStock=false;const power=await once('com.webos.service.tvpower/power/getPowerState',{});await replacement.enable({launch:power.state==='Active'&&(!appId||STOCK.has(appId)||appId===APP)});}
  catch(e){console.error('Direct Home could not start; foreground routing retained.');}
  finally{directBusy=false;}
  return replacement.status().enabled;
 }
 function stockAllowed(){try{const allowed=Number(fs.readFileSync(ROOT+'/allow-stock-until','utf8'))>Date.now();if(allowed)observedStock=true;return allowed;}catch{return false;}}
 async function foreground(appId){
- if(!appId)return;
+ // Crash recovery closes Home, so an empty foreground must still remount it.
+ if(!appId&&replacement.status().phase!=='recovering')return;
  if(await directForeground(appId))return;
  if(!STOCK.has(appId)){
   if(appId!==APP||observedStock){try{fs.unlinkSync(ROOT+'/allow-stock-until');}catch{}observedStock=false;}

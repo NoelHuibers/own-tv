@@ -119,6 +119,7 @@ function luna(uri,body){return new Promise((resolve,reject)=>{
 });}
 async function main(action, argument) {
  if(action==='state')return state();
+ if(action==='directHomeRecover')return createHomeReplacement({root:ROOT,luna}).recover('Direct Home restarted after a router error.');
  if(action==='homeRefresh')return createHomeReplacement({root:ROOT,luna}).refresh();
  if(action==='directHome'){
   if(typeof argument!=='boolean')throw Error('Choose whether Direct Home is enabled.');

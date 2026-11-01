@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '0.2.3';
+  var VERSION = '0.2.4';
   var STORE_KEY = 'owntv.preferences.v1';
   var EXPORT_KIND = 'owntv.preferences';
   var POLL_MS = 60 * 1000;
